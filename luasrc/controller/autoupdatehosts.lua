@@ -27,8 +27,9 @@ function get_current_hosts()
     -- 确保日志文件存在并有权限
     local function ensure_logfile()
         if not fs.access(logfile) then
-            fs.writefile(logfile, "")
-            fs.chmod(logfile, 666)
+            sys.exec("touch " .. logfile)
+            sys.exec("chmod 777 " .. logfile)
+            sys.exec("chown root:root " .. logfile)
         end
     end
     
@@ -36,10 +37,8 @@ function get_current_hosts()
     local function log(msg)
         local timestamp = os.date("%Y-%m-%d %H:%M:%S")
         local log_msg = string.format("[%s] %s\n", timestamp, msg)
-        
-        -- 使用 nixio.fs 追加写入日志
-        local current_content = fs.readfile(logfile) or ""
-        fs.writefile(logfile, current_content .. log_msg)
+        -- 使用 root 权限写入日志
+        sys.exec(string.format("echo '%s' >> %s", log_msg:gsub("'", "'\\''"), logfile))
     end
     
     -- 确保日志文件存在
@@ -83,9 +82,13 @@ function get_current_hosts()
         local alt_content = sys.exec("sudo cat /etc/hosts")
         log(string.format("尝试使用 sudo 读取大小: %d 字节", #(alt_content or "")))
         
-        luci.http.status(500, "Failed to read hosts file")
+        -- 如果所有读取方式都失败，返回提示信息
         luci.http.prepare_content("text/plain")
-        luci.http.write("Error: Unable to read hosts file")
+        luci.http.write("当前 hosts 文件为空或无法读取，请检查文件权限或重新配置系统。\n\n" ..
+                       "建议操作：\n" ..
+                       "1. 检查 /etc/hosts 文件是否存在\n" ..
+                       "2. 检查文件权限\n" ..
+                       "3. 尝试重新创建默认的 hosts 文件")
     end
 end
 
@@ -182,28 +185,21 @@ function save_hosts()
 end
 
 function get_log()
-    local fs = require "nixio.fs"
+    local sys = require "luci.sys"
     local logfile = "/tmp/autoupdatehosts.log"
     
     -- 确保日志文件存在
-    if not fs.access(logfile) then
+    if not sys.exec("test -f " .. logfile .. " && echo 'exists'") then
         luci.http.prepare_content("application/json")
         luci.http.write_json({log = "暂无日志记录"})
         return
     end
     
-    -- 读取日志文件
-    local log_content = fs.readfile(logfile) or ""
+    -- 使用 root 权限读取日志
+    local log_content = sys.exec("cat " .. logfile) or ""
     
     -- 如果日志内容太长，只返回最后100行
-    local lines = {}
-    for line in log_content:gmatch("[^\r\n]+") do
-        table.insert(lines, line)
-    end
-    
-    -- 保留最后100行
-    local start_index = #lines > 100 and #lines - 100 + 1 or 1
-    local result = table.concat(lines, "\n", start_index)
+    local result = sys.exec("tail -n 100 " .. logfile) or ""
     
     luci.http.prepare_content("application/json")
     luci.http.write_json({log = result})
