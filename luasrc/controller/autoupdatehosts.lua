@@ -20,21 +20,18 @@ function get_current_hosts()
     local fs = require "nixio.fs"
     local uci = require "luci.model.uci".cursor()
     
-    -- 使用多种方式记录日志
+    -- 使用 luci.sys.syslog 记录日志
     local function log(msg)
-        -- 使用 logger 命令
-        sys.exec("logger -t autoupdatehosts '" .. msg .. "'")
-        -- 写入到自定义日志文件
-        sys.exec("echo '[$(date \"+%Y-%m-%d %H:%M:%S\")] " .. msg .. "' >> /tmp/autoupdatehosts.log")
-        -- 使用 syslog
-        sys.exec("logger -p daemon.info -t autoupdatehosts '" .. msg .. "'")
+        sys.syslog("info", "[autoupdatehosts] " .. msg)
     end
     
+    log("=== 开始新的日志记录 ===")
     log("开始读取 hosts 文件")
     
     -- 检查文件是否存在并输出文件信息
     log("检查 hosts 文件权限")
-    sys.exec("ls -l /etc/hosts | logger -t autoupdatehosts")
+    local file_info = sys.exec("ls -l /etc/hosts")
+    log("hosts 文件信息: " .. file_info)
     
     if not fs.access("/etc/hosts") then
         log("错误：hosts 文件不存在")
@@ -96,7 +93,7 @@ function preview_hosts()
     local current_hosts = fs.readfile("/etc/hosts") or ""
     local urls = uci:get_first("autoupdatehosts", "config", "urls") or ""
     
-    local start_mark = "##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##"
+    local start_mark = "##订��hosts内容开始（程序自动更新请勿手动修改中间内容）##"
     local end_mark = "##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##"
     
     -- 移除旧的订阅内容
