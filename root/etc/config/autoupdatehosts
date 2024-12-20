@@ -1,0 +1,4 @@
+config config
+    option enabled '0'
+    option urls ''
+    option schedule '' 

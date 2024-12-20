@@ -1,0 +1,129 @@
+<%+header%>
+
+<style>
+.preview-area {
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px 0;
+    display: none;
+}
+</style>
+
+<script type="text/javascript">//<![CDATA[
+    var previewContent = '';
+    
+    function loadConfig() {
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_config")%>', null,
+            function(x, data) {
+                document.getElementById('enabled').checked = data.enabled === "1";
+                document.getElementById('urls').value = data.urls;
+                document.getElementById('schedule').value = data.schedule;
+            }
+        );
+    }
+    
+    function showCurrentHosts() {
+        var preview = document.getElementById('preview');
+        preview.style.display = 'block';
+        
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+            function(x, data) {
+                document.getElementById('preview').value = data;
+                previewContent = data;
+            }
+        );
+    }
+    
+    function previewHosts() {
+        var preview = document.getElementById('preview');
+        preview.style.display = 'block';
+        
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null,
+            function(x, data) {
+                document.getElementById('preview').value = data;
+                previewContent = data;
+            }
+        );
+    }
+    
+    function saveAll() {
+        if (!previewContent) {
+            alert('<%:Please preview content first%>');
+            return;
+        }
+        
+        var data = {
+            enabled: document.getElementById('enabled').checked ? "1" : "0",
+            urls: document.getElementById('urls').value,
+            schedule: document.getElementById('schedule').value
+        };
+        
+        XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_config")%>', data,
+            function(x, result) {
+                if (result.code === 0) {
+                    var hostData = {
+                        content: previewContent
+                    };
+                    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', hostData,
+                        function(x, result) {
+                            if (result.code === 0) {
+                                alert('<%:Save Success%>');
+                            } else {
+                                alert(result.msg);
+                            }
+                        }
+                    );
+                } else {
+                    alert(result.msg);
+                }
+            }
+        );
+    }
+    
+    window.onload = function() {
+        loadConfig();
+    }
+//]]></script>
+
+<h2><%:Auto Update Hosts Settings%></h2>
+<div class="cbi-map-descr"><%:Configure automatic hosts file updates%></div>
+
+<div class="cbi-section">
+    <div class="cbi-section-node">
+        <div class="cbi-value">
+            <label class="cbi-value-title"><%:Enable%></label>
+            <div class="cbi-value-field">
+                <input type="checkbox" id="enabled" />
+            </div>
+        </div>
+        
+        <div class="cbi-value">
+            <label class="cbi-value-title"><%:Update Schedule%></label>
+            <div class="cbi-value-field">
+                <input type="text" id="schedule" class="cbi-input-text" />
+                <div class="cbi-value-description"><%:Cron expression format (e.g., "0 2 * * *" for 2 AM daily)%></div>
+            </div>
+        </div>
+        
+        <div class="cbi-value">
+            <label class="cbi-value-title"><%:Hosts URLs%></label>
+            <div class="cbi-value-field">
+                <textarea id="urls" class="cbi-input-textarea" style="width: 100%; height: 100px;"></textarea>
+                <div class="cbi-value-description"><%:Enter URLs (one per line) for hosts files%></div>
+            </div>
+        </div>
+        
+        <textarea id="preview" class="preview-area" readonly></textarea>
+        
+        <div class="cbi-value-field">
+            <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="showCurrentHosts()" />
+            <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
+            <input type="button" class="btn cbi-button cbi-button-save" value="<%:Save%>" onclick="saveAll()" />
+        </div>
+    </div>
+</div>
+
+<%+footer%> 

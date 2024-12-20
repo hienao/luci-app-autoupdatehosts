@@ -1,0 +1,19 @@
+{
+    "luci-app-autoupdatehosts": {
+        "description": "Grant UCI access for luci-app-autoupdatehosts",
+        "read": {
+            "uci": [ "autoupdatehosts" ],
+            "file": {
+                "/etc/hosts": [ "read" ],
+                "/etc/config/autoupdatehosts": [ "read" ]
+            }
+        },
+        "write": {
+            "uci": [ "autoupdatehosts" ],
+            "file": {
+                "/etc/hosts": [ "write" ],
+                "/etc/config/autoupdatehosts": [ "write" ]
+            }
+        }
+    }
+} 
