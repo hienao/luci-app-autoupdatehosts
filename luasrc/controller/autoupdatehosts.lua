@@ -7,7 +7,7 @@ function index()
     e.dependent = false
     e.acl_depends = { "luci-app-autoupdatehosts" }
     
-    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_current_hosts"))
+    entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts"))
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts"))
     entry({"admin", "services", "autoupdatehosts", "save"}, call("save_hosts"))
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config"))
@@ -20,6 +20,9 @@ function get_current_hosts()
     local util = require "luci.util"
     local fs = require "nixio.fs"
     local uci = require "luci.model.uci".cursor()
+    
+    -- 添加调试日志
+    sys.exec("logger -t autoupdatehosts 'get_current_hosts 函数被调用'")
     
     -- 定义日志文件路径
     local logfile = "/tmp/autoupdatehosts.log"
@@ -86,7 +89,7 @@ function get_current_hosts()
         luci.http.prepare_content("text/plain")
         luci.http.write("当前 hosts 文件为空或无法读取，请检查文件权限或重新配置系统。\n\n" ..
                        "建议操作：\n" ..
-                       "1. 检查 /etc/hosts 文件是否存在\n" ..
+                       "1. 检��� /etc/hosts 文件是否存在\n" ..
                        "2. 检查文件权限\n" ..
                        "3. 尝试重新创建默认的 hosts 文件")
     end

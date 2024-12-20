@@ -113,9 +113,15 @@
     function showCurrentHosts() {
         var preview = document.getElementById('preview');
         preview.style.display = 'block';
+        preview.value = '正在获取...';
+        
+        console.log('开始请求 hosts 文件');
         
         XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>', null,
             function(x, data) {
+                console.log('请求状态:', x.status);
+                console.log('返回数据:', data);
+                
                 if (x.status == 200) {
                     document.getElementById('preview').value = data;
                     previewContent = data;
@@ -123,7 +129,8 @@
                     document.getElementById('preview').value = "获取 hosts 文件失败：" + x.statusText;
                 }
             },
-            function() {
+            function(x) {
+                console.log('请求失败:', x);
                 document.getElementById('preview').value = "请求失败，请检查网络连接";
             }
         );
