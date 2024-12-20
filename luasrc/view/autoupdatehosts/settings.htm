@@ -10,6 +10,20 @@
     margin: 10px 0;
     display: none;
 }
+.tab-button {
+    margin-right: 10px;
+    margin-bottom: 20px;
+}
+.tab-button.active {
+    background-color: #0069d6;
+    color: white;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
 </style>
 
 <script type="text/javascript">//<![CDATA[
@@ -83,45 +97,129 @@
         );
     }
     
+    var logTimer = null;
+    var isLogging = false;
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-button').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        document.getElementById('tab_' + tabName).classList.add('active');
+
+        document.querySelectorAll('.tab-content').forEach(function(content) {
+            content.classList.remove('active');
+        });
+        document.getElementById(tabName + '_content').classList.add('active');
+    }
+
+    function toggleLog() {
+        var btn = document.getElementById('log_control');
+        isLogging = !isLogging;
+        
+        if (isLogging) {
+            btn.value = '<%:Stop Log%>';
+            startLogging();
+        } else {
+            btn.value = '<%:Start Log%>';
+            stopLogging();
+        }
+    }
+
+    function startLogging() {
+        if (logTimer) return;
+        logTimer = setInterval(fetchLog, 1000);
+    }
+
+    function stopLogging() {
+        if (logTimer) {
+            clearInterval(logTimer);
+            logTimer = null;
+        }
+    }
+
+    function clearLog() {
+        document.getElementById('log_textarea').value = '';
+    }
+
+    function fetchLog() {
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_log")%>', null,
+            function(x, data) {
+                if (data && data.log) {
+                    document.getElementById('log_textarea').value = data.log;
+                    var textarea = document.getElementById('log_textarea');
+                    textarea.scrollTop = textarea.scrollHeight;
+                }
+            }
+        );
+    }
+
     window.onload = function() {
         loadConfig();
+        switchTab('settings');
     }
 //]]></script>
 
 <h2><%:Auto Update Hosts Settings%></h2>
-<div class="cbi-map-descr"><%:Configure automatic hosts file updates%></div>
 
 <div class="cbi-section">
-    <div class="cbi-section-node">
-        <div class="cbi-value">
-            <label class="cbi-value-title"><%:Enable%></label>
+    <div class="cbi-value">
+        <input type="button" id="tab_settings" class="cbi-button tab-button" value="<%:Settings%>" onclick="switchTab('settings')" />
+        <input type="button" id="tab_log" class="cbi-button tab-button" value="<%:Log%>" onclick="switchTab('log')" />
+    </div>
+</div>
+
+<div id="settings_content" class="tab-content">
+    <div class="cbi-map-descr"><%:Configure automatic hosts file updates%></div>
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:Enable%></label>
+                <div class="cbi-value-field">
+                    <input type="checkbox" id="enabled" />
+                </div>
+            </div>
+            
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:Update Schedule%></label>
+                <div class="cbi-value-field">
+                    <input type="text" id="schedule" class="cbi-input-text" />
+                    <div class="cbi-value-description"><%:Cron expression format (e.g., "0 2 * * *" for 2 AM daily)%></div>
+                </div>
+            </div>
+            
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:Hosts URLs%></label>
+                <div class="cbi-value-field">
+                    <textarea id="urls" class="cbi-input-textarea" style="width: 100%; height: 100px;"></textarea>
+                    <div class="cbi-value-description"><%:Enter URLs (one per line) for hosts files%></div>
+                </div>
+            </div>
+            
+            <textarea id="preview" class="preview-area" readonly></textarea>
+            
             <div class="cbi-value-field">
-                <input type="checkbox" id="enabled" />
+                <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="showCurrentHosts()" />
+                <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
+                <input type="button" class="btn cbi-button cbi-button-save" value="<%:Save%>" onclick="saveAll()" />
             </div>
         </div>
-        
-        <div class="cbi-value">
-            <label class="cbi-value-title"><%:Update Schedule%></label>
-            <div class="cbi-value-field">
-                <input type="text" id="schedule" class="cbi-input-text" />
-                <div class="cbi-value-description"><%:Cron expression format (e.g., "0 2 * * *" for 2 AM daily)%></div>
+    </div>
+</div>
+
+<div id="log_content" class="tab-content">
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <div class="cbi-value-field">
+                    <input type="button" id="log_control" class="btn cbi-button cbi-button-apply" value="<%:Start Log%>" onclick="toggleLog()" />
+                    <input type="button" class="btn cbi-button cbi-button-remove" value="<%:Clear Log%>" onclick="clearLog()" />
+                </div>
             </div>
-        </div>
-        
-        <div class="cbi-value">
-            <label class="cbi-value-title"><%:Hosts URLs%></label>
-            <div class="cbi-value-field">
-                <textarea id="urls" class="cbi-input-textarea" style="width: 100%; height: 100px;"></textarea>
-                <div class="cbi-value-description"><%:Enter URLs (one per line) for hosts files%></div>
+            <div class="cbi-value">
+                <div class="cbi-value-field">
+                    <textarea id="log_textarea" style="width: 100%; height: 300px; padding: 5px; font-family: monospace;" readonly="readonly"></textarea>
+                </div>
             </div>
-        </div>
-        
-        <textarea id="preview" class="preview-area" readonly></textarea>
-        
-        <div class="cbi-value-field">
-            <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="showCurrentHosts()" />
-            <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
-            <input type="button" class="btn cbi-button cbi-button-save" value="<%:Save%>" onclick="saveAll()" />
         </div>
     </div>
 </div>
