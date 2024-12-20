@@ -18,7 +18,7 @@ jobs:
             sdk_name: -sdk-x86-64_
 
     env:
-      PACKAGE_NAME: luci-app-poweroffdevice
+      PACKAGE_NAME: luci-app-autoupdatehosts
       SDK_URL_PATH: ${{ matrix.sdk_url_path }}
       SDK_NAME: ${{ matrix.sdk_name }}
       ARCH: ${{ matrix.arch }}
