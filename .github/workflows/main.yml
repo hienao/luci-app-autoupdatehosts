@@ -2,11 +2,9 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - "v*"
-      - "t*"
-      - "pre-release-*"
-  workflow_dispatch:
+    branches:
+      - main
+      - pre
 
 # 添加权限配置
 permissions:
@@ -14,36 +12,39 @@ permissions:
   discussions: write
 
 jobs:
-  create_prerelease_tag:
-    name: Create Pre-release Tag
+  build_and_release:
+    name: Build and Release
     runs-on: ubuntu-22.04
-    if: startsWith(github.ref, 'refs/tags/t')
+    if: ${{ secrets.IS_GITHUB_RUN == 'true' }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
 
-      - name: Create Pre-release Tag
+      - name: Set Release Info
+        id: release_info
         run: |
-          git config --local user.name 'GitHub Actions'
-          git config --local user.email 'actions@github.com'
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          NEW_TAG="pre-release-$TIMESTAMP"
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
-          echo "创建预发布标签: $NEW_TAG"
-
-  build_and_release:
-    name: Build and Release
-    runs-on: ubuntu-22.04
-    # 只在收到 pre-release- 或 v 开头的标签时执行
-    if: startsWith(github.ref, 'refs/tags/pre-release-') || startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Check Environment
-        run: |
-          if [ "${{ secrets.IS_GITHUB_RUN }}" != "true" ]; then
-            echo "非github环境，终止执行"
-            exit 1
+          if [[ "${{ github.ref }}" == "refs/heads/pre" ]]; then
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            echo "RELEASE_VERSION=pre-$TIMESTAMP" >> $GITHUB_ENV
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+            echo "设置为预发布版本"
+          else
+            # 读取 version.txt 文件中的版本号
+            if [ -f "version.txt" ]; then
+              VERSION=$(cat version.txt | tr -d '[:space:]')
+              if [ -n "$VERSION" ]; then
+                echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+              else
+                echo "version.txt 文件为空，使用默认版本号 v1.0.0"
+                echo "RELEASE_VERSION=v1.0.0" >> $GITHUB_ENV
+              fi
+            else
+              echo "未找到 version.txt 文件，使用默认版本号 v1.0.0"
+              echo "RELEASE_VERSION=v1.0.0" >> $GITHUB_ENV
+            fi
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+            echo "设置为正式版本: $VERSION"
           fi
 
       # 使用缓存加速依赖安装
@@ -59,23 +60,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends build-essential \
             libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext \
             libssl-dev xsltproc rsync unzip
-
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-
-      - name: Set Release Info
-        id: release_info
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_ENV
-          if [[ $TAG_NAME == pre-release-* ]]; then
-            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-            echo "设置为预发布版本: $TAG_NAME"
-          else
-            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-            echo "设置为正式版本: $TAG_NAME"
-          fi
 
       # 缓存 SDK
       - name: Cache SDK
@@ -121,7 +105,7 @@ jobs:
           find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
           find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下文：" >> release.txt
+          echo "包含以下文件：" >> release.txt
           ls -1 release/ >> release.txt
 
       - name: Create Release
@@ -130,7 +114,7 @@ jobs:
           files: release/*
           body_path: release.txt
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
-          draft: false  # 确保不是草稿状态
+          draft: false
           tag_name: ${{ env.RELEASE_VERSION }}
           name: ${{ env.RELEASE_VERSION }}
           generate_release_notes: true
