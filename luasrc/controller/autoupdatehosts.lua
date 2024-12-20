@@ -111,4 +111,11 @@ function save_hosts()
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 1, msg = "内容不能为空"})
     end
+end
+
+function get_log()
+    local util = require "luci.util"
+    local log = util.exec("tail -n 100 /tmp/autoupdatehosts.log")
+    luci.http.prepare_content("application/json")
+    luci.http.write_json({log = log})
 end 

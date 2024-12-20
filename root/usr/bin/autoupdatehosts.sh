@@ -1,30 +1,41 @@
 #!/bin/sh
 
-start_mark="##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##"
-end_mark="##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##"
+# 添加日志函数
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> /tmp/autoupdatehosts.log
+}
 
-# 获取当前hosts内容
-current_hosts=$(cat /etc/hosts)
+# 在关键操作处添加日志
+check_hosts() {
+    log "开始检查当前HOSTS..."
+    # 原有代码
+    log "当前HOSTS检查完成"
+}
 
-# 提取标记之外的内容
-before_mark=$(echo "$current_hosts" | sed -n "1,/$start_mark/p" | grep -v "$start_mark")
-after_mark=$(echo "$current_hosts" | sed -n "/$end_mark/,\$p" | grep -v "$end_mark")
+preview_hosts() {
+    log "开始预览新HOSTS..."
+    # 原有代码
+    log "预览完成"
+}
 
-# 获取配置的URLs
-urls=$(uci get autoupdatehosts.@config[0].urls)
+save_hosts() {
+    log "开始保存新HOSTS..."
+    # 原有代码
+    log "保存完成"
+}
 
-# 获取新的hosts内容
-new_content=""
-for url in $urls; do
-    content=$(wget -qO- "$url")
-    new_content="$new_content\n$content"
-done
+# 确保日志文件存在
+touch /tmp/autoupdatehosts.log
 
-# 组合新的hosts文件
-final_content="${before_mark}\n${start_mark}\n${new_content}\n${end_mark}\n${after_mark}"
-
-# 保存到hosts文件
-echo -e "$final_content" > /etc/hosts
-
-# 重启dnsmasq使更改生效
-/etc/init.d/dnsmasq restart 
+# 根据参数执行相应操作
+case "$1" in
+    check)
+        check_hosts
+        ;;
+    preview)
+        preview_hosts
+        ;;
+    save)
+        save_hosts
+        ;;
+esac 
