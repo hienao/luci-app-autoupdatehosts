@@ -16,21 +16,17 @@ permissions:
 jobs:
   create_prerelease_tag:
     name: Create Pre-release Tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/t')
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 0
-
-      - name: Setup Git
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
+          fetch-depth: 1
 
       - name: Create Pre-release Tag
         run: |
+          git config --local user.name 'GitHub Actions'
+          git config --local user.email 'actions@github.com'
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
           NEW_TAG="pre-release-$TIMESTAMP"
           git tag $NEW_TAG
@@ -39,7 +35,7 @@ jobs:
 
   build_and_release:
     name: Build and Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # 只在收到 pre-release- 或 v 开头的标签时执行
     if: startsWith(github.ref, 'refs/tags/pre-release-') || startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -49,7 +45,24 @@ jobs:
             echo "非github环境，终止执行"
             exit 1
           fi
-          echo "github环境检查通过，继续执行"
+
+      # 使用缓存加速依赖安装
+      - name: Cache apt packages
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/package-list') }}
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential \
+            libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext \
+            libssl-dev xsltproc rsync unzip
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
 
       - name: Set Release Info
         id: release_info
@@ -58,53 +71,57 @@ jobs:
           echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_ENV
           if [[ $TAG_NAME == pre-release-* ]]; then
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-            echo "构建预发布版本: $TAG_NAME"
+            echo "设置为预发布版本: $TAG_NAME"
           else
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-            echo "构建正式版本: $TAG_NAME"
+            echo "设置为正式版本: $TAG_NAME"
           fi
 
-      - name: Checkout
-        uses: actions/checkout@v3
+      # 缓存 SDK
+      - name: Cache SDK
+        id: cache-sdk
+        uses: actions/cache@v3
         with:
-          fetch-depth: 0
-
-      - name: Install Build Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev \
-          zlib1g-dev gawk git gettext libssl-dev xsltproc rsync unzip
+          path: sdk
+          key: ${{ runner.os }}-openwrt-sdk-22.03.5
 
       - name: Setup OpenWrt SDK
+        if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
-          rm -rf sdk
-          wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
-          tar xJf openwrt-sdk-*.tar.xz
+          wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+          tar xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
-          
+
+      # 缓存 feeds
+      - name: Cache feeds
+        id: cache-feeds
+        uses: actions/cache@v3
+        with:
+          path: sdk/feeds
+          key: ${{ runner.os }}-feeds-${{ hashFiles('sdk/feeds.conf.default') }}
+
       - name: Setup SDK Environment
         run: |
           cd sdk
-          ./scripts/feeds update -a
+          if [ "${{ steps.cache-feeds.outputs.cache-hit }}" != 'true' ]; then
+            ./scripts/feeds update -a
+          fi
           ./scripts/feeds install -a
           ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
-          
+
       - name: Build Package
         run: |
           cd sdk
           make defconfig
-          make package/luci-app-autoupdatehosts/compile V=s
+          make package/luci-app-autoupdatehosts/compile V=s -j$(nproc)
 
-      - name: Organize IPK files
+      - name: Organize and Release
         run: |
           mkdir -p release
           find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
           find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
-
-      - name: Generate Release Notes
-        run: |
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下文件：" >> release.txt
+          echo "包含以下文：" >> release.txt
           ls -1 release/ >> release.txt
 
       - name: Create Release
@@ -113,6 +130,7 @@ jobs:
           files: release/*
           body_path: release.txt
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          draft: false  # 确保不是草稿状态
           tag_name: ${{ env.RELEASE_VERSION }}
           name: ${{ env.RELEASE_VERSION }}
           generate_release_notes: true
