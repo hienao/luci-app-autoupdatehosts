@@ -1,98 +1,66 @@
-name: build
+name: Build and Release
 
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+  workflow_dispatch:
 
 jobs:
-  release:
-    name: Build and Release for ${{ matrix.arch }}
+  build:
+    name: Build OpenWrt LuCI App
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            sdk_url_path: https://downloads.openwrt.org/snapshots/targets/x86/64
-            sdk_name: -sdk-x86-64_
-
-    env:
-      PACKAGE_NAME: luci-app-autoupdatehosts
-      SDK_URL_PATH: ${{ matrix.sdk_url_path }}
-      SDK_NAME: ${{ matrix.sdk_name }}
-      ARCH: ${{ matrix.arch }}
-      CACHE_DIR: ~/cache
-
+    
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Install Dependencies
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -yq gettext libncurses5-dev rsync xsltproc
-          
-      - name: Create Directories
+          sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev \
+          zlib1g-dev gawk git gettext libssl-dev xsltproc rsync unzip
+
+      - name: Setup OpenWrt SDK
         run: |
-          echo "SDK_HOME=$(mktemp -d)" >> $GITHUB_ENV
-          echo "SDK_DL_DIR=$(mktemp -d)" >> $GITHUB_ENV
+          wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+          tar xJf openwrt-sdk-*.tar.xz
+          mv openwrt-sdk-* sdk
           
-      - name: Prepare Build Environment
+      - name: Setup SDK Environment
         run: |
-          cd "$SDK_DL_DIR"
-          # 下载 sha256sums 文件并过滤出需要的行
-          if ! ( wget -q -O - "$SDK_URL_PATH/sha256sums" | grep -- "$SDK_NAME" > sha256sums.small 2>/dev/null ) ; then
-            echo "Can not find ${SDK_NAME} file in sha256sums."
-            exit 1
-          fi
-          # 解析出文件名
-          SDK_FILE="$(cat sha256sums.small | cut -d' ' -f2 | sed 's/*//g')"
-          echo "SDK_FILE: $SDK_FILE"  # 调试信息
-          # 下载 SDK 文件
-          wget -q -O "$SDK_FILE" "$SDK_URL_PATH/$SDK_FILE"
-          # 检查文件是否下载成功
-          if [ ! -f "$SDK_FILE" ]; then
-            echo "Failed to download SDK file: $SDK_FILE"
-            exit 1
-          fi
-          # 验证文件的完整性
-          if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
-            echo "SDK can not be verified!"
-            exit 1
-          fi
-          # 解压 SDK 文件
-          tar -xf "$SDK_DL_DIR/$SDK_FILE" -C "$SDK_HOME" --strip=1
-          # 检查 staging_dir/host/bin 是否存在
-          if [ ! -d "$SDK_HOME/staging_dir/host/bin" ]; then
-            echo "Error: staging_dir/host/bin not found in SDK!"
-            exit 1
-          fi
-          # 检查 po2lmo 是否存在
-          if [ ! -f "$SDK_HOME/staging_dir/host/bin/po2lmo" ]; then
-            echo "Error: po2lmo not found in staging_dir/host/bin!"
-            exit 1
-          fi
-          # 添加 staging_dir/host/bin 到 PATH
-          echo "PATH=$SDK_HOME/staging_dir/host/bin:$PATH" >> $GITHUB_ENV
-          
-      - name: Build Packages
-        run: |
-          cd "$SDK_HOME"
+          cd sdk
           # 更新 feeds
-          ./scripts/feeds update -a > /dev/null 2>&1
-          ./scripts/feeds install golang > /dev/null 2>&1
-          # 链接源码到 SDK 的 package 目录
-          ln -s "${{ github.workspace }}" "package/$PACKAGE_NAME"
-          # 生成默认配置
-          make defconfig > /dev/null 2>&1
-          # 构建包，增加详细输出
-          make -j1 V=s package/${PACKAGE_NAME}/{clean,download,compile}
-          # 复制生成的 IPK 文件到工作目录
-          find "$SDK_HOME/bin" -type f -name "${PACKAGE_NAME}_*.ipk" \
-           -exec cp -f {} "${{ github.workspace }}" \;
-      - name: Release and Upload Assets
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          # 链接应用到 SDK package 目录
+          ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
+          
+      - name: Build Package
+        run: |
+          cd sdk
+          make defconfig
+          make package/luci-app-autoupdatehosts/compile V=s
+
+      - name: Organize IPK files
+        run: |
+          mkdir -p release
+          find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
+          find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
+
+      - name: Generate Release Notes
+        run: |
+          echo "### LuCI App AutoUpdateHosts Release" > release.txt
+          echo "包含以下文件：" >> release.txt
+          ls -1 release/ >> release.txt
+
+      - name: Create Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: "*.ipk"
+          files: release/*
+          body_path: release.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
