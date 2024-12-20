@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Check Environment
+        run: |
+          if [ "${{ secrets.IS_GITHUB_RUN }}" != "true" ]; then
+            echo "非github环境，终止执行"
+            exit 1
+          fi
+          echo "github环境检查通过，继续执行"
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -68,4 +76,4 @@ jobs:
           files: release/*
           body_path: release.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
