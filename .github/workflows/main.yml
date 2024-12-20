@@ -6,6 +6,11 @@ on:
       - "v*"
   workflow_dispatch:
 
+# 添加权限配置
+permissions:
+  contents: write
+  discussions: write
+
 jobs:
   build:
     name: Build OpenWrt LuCI App
@@ -71,7 +76,7 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         with:
           files: release/*
           body_path: release.txt
