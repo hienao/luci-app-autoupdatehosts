@@ -114,10 +114,17 @@
         var preview = document.getElementById('preview');
         preview.style.display = 'block';
         
-        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>', null,
             function(x, data) {
-                document.getElementById('preview').value = data;
-                previewContent = data;
+                if (x.status == 200) {
+                    document.getElementById('preview').value = data;
+                    previewContent = data;
+                } else {
+                    document.getElementById('preview').value = "获取 hosts 文件失败：" + x.statusText;
+                }
+            },
+            function() {
+                document.getElementById('preview').value = "请求失败，请检查网络连接";
             }
         );
     }
