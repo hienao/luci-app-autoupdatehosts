@@ -43,8 +43,8 @@ jobs:
     name: Build OpenWrt LuCI App
     needs: [prepare]
     if: |
-      always() &&
-      (needs.prepare.result == 'success' || startsWith(github.ref, 'refs/tags/v'))
+      !startsWith(github.ref, 'refs/tags/t') && 
+      (startsWith(github.ref, 'refs/tags/v') || needs.prepare.result == 'success')
     runs-on: ubuntu-latest
     
     steps:
@@ -116,7 +116,7 @@ jobs:
       - name: Generate Release Notes
         run: |
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下文件：" >> release.txt
+          echo "包含以下��件：" >> release.txt
           ls -1 release/ >> release.txt
 
       - name: Create Release
