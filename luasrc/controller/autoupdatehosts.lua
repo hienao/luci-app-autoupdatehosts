@@ -15,39 +15,57 @@ function index()
 end
 
 function get_current_hosts()
-    -- 添加调试日志
     local sys = require "luci.sys"
     local util = require "luci.util"
     local fs = require "nixio.fs"
+    local uci = require "luci.model.uci".cursor()
     
-    -- 记录函数开始执行
-    sys.exec("logger -t autoupdatehosts '开始读取 hosts 文件'")
+    -- 使用多种方式记录日志
+    local function log(msg)
+        -- 使用 logger 命令
+        sys.exec("logger -t autoupdatehosts '" .. msg .. "'")
+        -- 写入到自定义日志文件
+        sys.exec("echo '[$(date \"+%Y-%m-%d %H:%M:%S\")] " .. msg .. "' >> /tmp/autoupdatehosts.log")
+        -- 使用 syslog
+        sys.exec("logger -p daemon.info -t autoupdatehosts '" .. msg .. "'")
+    end
     
-    -- 检查文件是否存在
+    log("开始读取 hosts 文件")
+    
+    -- 检查文件是否存在并输出文件信息
+    log("检查 hosts 文件权限")
+    sys.exec("ls -l /etc/hosts | logger -t autoupdatehosts")
+    
     if not fs.access("/etc/hosts") then
-        sys.exec("logger -t autoupdatehosts '错误：hosts 文件不存在'")
+        log("错误：hosts 文件不存在")
         luci.http.status(500, "Hosts file not found")
         luci.http.prepare_content("text/plain")
         luci.http.write("Error: Hosts file not found")
         return
     end
     
-    -- 尝试读取文件内容
+    -- 尝试直接读取文件内容
+    local direct_content = fs.readfile("/etc/hosts")
+    log(string.format("直接读取文件大小: %d 字节", #(direct_content or "")))
+    
+    -- 使用 cat 命令读取
     local content = sys.exec("cat /etc/hosts")
+    log(string.format("通过 cat 命令读取文件大小: %d 字节", #(content or "")))
     
-    -- 记录文件内容长度
-    sys.exec(string.format("logger -t autoupdatehosts 'hosts 文件大小: %d 字节'", #(content or "")))
-    
-    -- 记录文件内容的前几行（用于调试）
-    local preview = util.trim(util.split(content or "", "\n", 3)[1] or "")
-    sys.exec(string.format("logger -t autoupdatehosts '文件内容预览: %s'", preview))
-    
+    -- 输出文件内容预览
     if content and #content > 0 then
-        sys.exec("logger -t autoupdatehosts '成功读取 hosts 文件'")
+        local preview = util.trim(util.split(content, "\n", 3)[1] or "")
+        log(string.format("文件内容预览: %s", preview))
+        
+        log("成功读取 hosts 文件")
         luci.http.prepare_content("text/plain")
         luci.http.write(content)
     else
-        sys.exec("logger -t autoupdatehosts '错误：无法读取 hosts 文件内容'")
+        log("错误：无法读取 hosts 文件内容")
+        -- 尝试使用其他命令读取
+        local alt_content = sys.exec("sudo cat /etc/hosts")
+        log(string.format("尝试使用 sudo 读取大小: %d 字节", #(alt_content or "")))
+        
         luci.http.status(500, "Failed to read hosts file")
         luci.http.prepare_content("text/plain")
         luci.http.write("Error: Unable to read hosts file")
