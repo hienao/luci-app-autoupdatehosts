@@ -5,6 +5,7 @@ on:
     tags:
       - "v*"
       - "t*"
+      - "pre-release-*"
   workflow_dispatch:
 
 # 添加权限配置
@@ -13,12 +14,10 @@ permissions:
   discussions: write
 
 jobs:
-  prepare:
-    name: Prepare Release
+  create_prerelease_tag:
+    name: Create Pre-release Tag
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/t') && !contains(github.ref, 'v0.1-')
-    outputs:
-      new_tag: ${{ steps.create_tag.outputs.new_tag }}
+    if: startsWith(github.ref, 'refs/tags/t')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -30,26 +29,19 @@ jobs:
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
 
-      - name: Create New Tag
-        id: create_tag
+      - name: Create Pre-release Tag
         run: |
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          NEW_TAG="v0.1-$TIMESTAMP"
-          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          NEW_TAG="pre-release-$TIMESTAMP"
           git tag $NEW_TAG
           git push origin $NEW_TAG
+          echo "创建预发布标签: $NEW_TAG"
 
-  build:
-    name: Build OpenWrt LuCI App
-    needs: [prepare]
-    if: |
-      always() &&
-      (
-        (startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/t')) ||
-        (needs.prepare.result == 'success')
-      )
+  build_and_release:
+    name: Build and Release
     runs-on: ubuntu-latest
-    
+    # 只在收到 pre-release- 或 v 开头的标签时执行
+    if: startsWith(github.ref, 'refs/tags/pre-release-') || startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Check Environment
         run: |
@@ -62,15 +54,14 @@ jobs:
       - name: Set Release Info
         id: release_info
         run: |
-          if [[ "${{ needs.prepare.result }}" == "success" ]]; then
-            echo "RELEASE_VERSION=${{ needs.prepare.outputs.new_tag }}" >> $GITHUB_ENV
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_ENV
+          if [[ $TAG_NAME == pre-release-* ]]; then
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-            echo "使用新生成的标签: ${{ needs.prepare.outputs.new_tag }}"
+            echo "构建预发布版本: $TAG_NAME"
           else
-            TAG_NAME=${GITHUB_REF#refs/tags/}
-            echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_ENV
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-            echo "使用原标签: $TAG_NAME"
+            echo "构建正式版本: $TAG_NAME"
           fi
 
       - name: Checkout
@@ -86,22 +77,16 @@ jobs:
 
       - name: Setup OpenWrt SDK
         run: |
-          # 先删除可能存在的 sdk 目录
           rm -rf sdk
-          # 下载 SDK
           wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
-          # 解压
           tar xJf openwrt-sdk-*.tar.xz
-          # 重命名解压的目录为 sdk（使用通配符）
           mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
           
       - name: Setup SDK Environment
         run: |
           cd sdk
-          # 更新 feeds
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          # 链接应用到 SDK package 目录
           ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
           
       - name: Build Package
@@ -119,12 +104,11 @@ jobs:
       - name: Generate Release Notes
         run: |
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下件：" >> release.txt
+          echo "包含以下文件：" >> release.txt
           ls -1 release/ >> release.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
-        if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
         with:
           files: release/*
           body_path: release.txt
