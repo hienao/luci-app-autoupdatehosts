@@ -25,9 +25,14 @@ jobs:
 
       - name: Setup OpenWrt SDK
         run: |
+          # 先删除可能存在的 sdk 目录
+          rm -rf sdk
+          # 下载 SDK
           wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+          # 解压
           tar xJf openwrt-sdk-*.tar.xz
-          mv openwrt-sdk-* sdk
+          # 重命名解压后的目录为 sdk（使用通配符）
+          mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
           
       - name: Setup SDK Environment
         run: |
