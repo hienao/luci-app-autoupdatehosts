@@ -26,12 +26,9 @@ function get_current_hosts()
     
     -- 确保日志文件存在并有权限
     local function ensure_logfile()
-        local file = io.open(logfile, "a")
-        if not file then
-            os.execute("touch " .. logfile)
-            os.execute("chmod 666 " .. logfile)
-        else
-            file:close()
+        if not fs.access(logfile) then
+            fs.writefile(logfile, "")
+            fs.chmod(logfile, 666)
         end
     end
     
@@ -39,11 +36,10 @@ function get_current_hosts()
     local function log(msg)
         local timestamp = os.date("%Y-%m-%d %H:%M:%S")
         local log_msg = string.format("[%s] %s\n", timestamp, msg)
-        local file = io.open(logfile, "a")
-        if file then
-            file:write(log_msg)
-            file:close()
-        end
+        
+        -- 使用 nixio.fs 追加写入日志
+        local current_content = fs.readfile(logfile) or ""
+        fs.writefile(logfile, current_content .. log_msg)
     end
     
     -- 确保日志文件存在
@@ -55,7 +51,7 @@ function get_current_hosts()
     -- 检查文件是否存在并输出文件信息
     log("检查 hosts 文件权限")
     local file_info = sys.exec("ls -l /etc/hosts")
-    log("hosts 文件信息: " .. (file_info or "无法获取文件��息"))
+    log("hosts 文件信息: " .. (file_info or "无法获取文件信息"))
     
     if not fs.access("/etc/hosts") then
         log("错误：hosts 文件不存在")
