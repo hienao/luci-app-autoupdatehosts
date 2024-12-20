@@ -17,8 +17,8 @@ jobs:
     name: Build OpenWrt LuCI App
     runs-on: ubuntu-latest
     
-    # 添加条件：跳过由 v0.1- 开头的标签触发的工作流
-    if: ${{ !startsWith(github.ref, 'refs/tags/v0.1-') }}
+    # 修改条件：只有非t开头的标签或v0.1-开头的标签才执行
+    if: ${{ !startsWith(github.ref, 'refs/tags/t') || startsWith(github.ref, 'refs/tags/v0.1-') }}
     
     steps:
       - name: Check Environment
@@ -52,7 +52,7 @@ jobs:
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
           fi
           
-          # 输出最终配置
+          # 输出最终���置
           echo "最终版本号: $(cat $GITHUB_ENV | grep RELEASE_VERSION)"
           echo "是否预发布: $(cat $GITHUB_ENV | grep IS_PRERELEASE)"
 
@@ -75,7 +75,7 @@ jobs:
           wget https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
           # 解压
           tar xJf openwrt-sdk-*.tar.xz
-          # 重命名解压后的目录为 sdk（使用通配符）
+          # 重命名解压的目录为 sdk（使用通配符）
           mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
           
       - name: Setup SDK Environment
@@ -114,7 +114,6 @@ jobs:
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           tag_name: ${{ env.RELEASE_VERSION }}
           name: ${{ env.RELEASE_VERSION }}
-          draft: false
           generate_release_notes: true
           fail_on_unmatched_files: false
           token: ${{ secrets.REPO_TOKEN }}
