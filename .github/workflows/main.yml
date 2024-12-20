@@ -70,7 +70,8 @@ jobs:
           ./scripts/feeds install golang > /dev/null 2>&1
           ln -s "${{ github.workspace }}" "package/$PACKAGE_NAME"
           make defconfig > /dev/null 2>&1
-          make package/${PACKAGE_NAME}/{clean,download,compile}
+          # 增加详细输出，限制并行构建任务数量为 1
+          make -j1 V=s package/${PACKAGE_NAME}/{clean,download,compile}
           find "$SDK_HOME/bin" -type f -name "${PACKAGE_NAME}_*.ipk" \
            -exec cp -f {} "${{ github.workspace }}" \;
       - name: Release and Upload Assets
