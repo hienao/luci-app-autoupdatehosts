@@ -16,25 +16,41 @@ end
 
 function get_current_hosts()
     -- 添加调试日志
-    luci.sys.exec("logger -t autoupdatehosts 'Reading hosts file...'")
+    local sys = require "luci.sys"
+    local util = require "luci.util"
+    local fs = require "nixio.fs"
     
-    -- 使用 luci.sys.exec 替代 nixio.fs
-    local content = luci.sys.exec("cat /etc/hosts")
+    -- 记录函数开始执行
+    sys.exec("logger -t autoupdatehosts '开始读取 hosts 文件'")
     
-    -- 添加调试日志
-    luci.sys.exec(string.format("logger -t autoupdatehosts 'Hosts content length: %d'", #(content or "")))
+    -- 检查文件是否存在
+    if not fs.access("/etc/hosts") then
+        sys.exec("logger -t autoupdatehosts '错误：hosts 文件不存在'")
+        luci.http.status(500, "Hosts file not found")
+        luci.http.prepare_content("text/plain")
+        luci.http.write("Error: Hosts file not found")
+        return
+    end
+    
+    -- 尝试读取文件内容
+    local content = sys.exec("cat /etc/hosts")
+    
+    -- 记录文件内容长度
+    sys.exec(string.format("logger -t autoupdatehosts 'hosts 文件大小: %d 字节'", #(content or "")))
+    
+    -- 记录文件内容的前几行（用于调试）
+    local preview = util.trim(util.split(content or "", "\n", 3)[1] or "")
+    sys.exec(string.format("logger -t autoupdatehosts '文件内容预览: %s'", preview))
     
     if content and #content > 0 then
+        sys.exec("logger -t autoupdatehosts '成功读取 hosts 文件'")
         luci.http.prepare_content("text/plain")
         luci.http.write(content)
     else
-        -- 如果读取失败，返回错误信息
+        sys.exec("logger -t autoupdatehosts '错误：无法读取 hosts 文件内容'")
         luci.http.status(500, "Failed to read hosts file")
         luci.http.prepare_content("text/plain")
         luci.http.write("Error: Unable to read hosts file")
-        
-        -- 记录错误日志
-        luci.sys.exec("logger -t autoupdatehosts 'Failed to read hosts file'")
     end
 end
 
