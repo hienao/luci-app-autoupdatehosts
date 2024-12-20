@@ -115,12 +115,14 @@
         preview.style.display = 'block';
         preview.value = '正在获取...';
         
-        console.log('开始请求 hosts 文件');
+        alert('开始请求 hosts 文件');
         
-        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>', null,
+        var url = '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>';
+        alert('请求 URL: ' + url);
+        
+        XHR.get(url, null,
             function(x, data) {
-                console.log('请求状态:', x.status);
-                console.log('返回数据:', data);
+                alert('请求状态: ' + x.status + '\n数据长度: ' + (data ? data.length : 0));
                 
                 if (x.status == 200) {
                     document.getElementById('preview').value = data;
@@ -130,7 +132,7 @@
                 }
             },
             function(x) {
-                console.log('请求失败:', x);
+                alert('请求失败: ' + (x ? x.statusText : '未知错误'));
                 document.getElementById('preview').value = "请求失败，请检查网络连接";
             }
         );
