@@ -15,10 +15,27 @@ function index()
 end
 
 function get_current_hosts()
-    local fs = require "nixio.fs"
-    local hosts = fs.readfile("/etc/hosts") or ""
-    luci.http.prepare_content("text/plain")
-    luci.http.write(hosts)
+    -- 添加调试日志
+    luci.sys.exec("logger -t autoupdatehosts 'Reading hosts file...'")
+    
+    -- 使用 luci.sys.exec 替代 nixio.fs
+    local content = luci.sys.exec("cat /etc/hosts")
+    
+    -- 添加调试日志
+    luci.sys.exec(string.format("logger -t autoupdatehosts 'Hosts content length: %d'", #(content or "")))
+    
+    if content and #content > 0 then
+        luci.http.prepare_content("text/plain")
+        luci.http.write(content)
+    else
+        -- 如果读取失败，返回错误信息
+        luci.http.status(500, "Failed to read hosts file")
+        luci.http.prepare_content("text/plain")
+        luci.http.write("Error: Unable to read hosts file")
+        
+        -- 记录错误日志
+        luci.sys.exec("logger -t autoupdatehosts 'Failed to read hosts file'")
+    end
 end
 
 function get_config()
