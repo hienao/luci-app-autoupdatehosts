@@ -111,14 +111,24 @@
     }
     
     function showCurrentHosts() {
+        alert('showCurrentHosts 函数被调用');  // 测试函数是否被调用
+        
         var preview = document.getElementById('preview');
+        if (!preview) {
+            alert('找不到 preview 元素');
+            return;
+        }
+        
         preview.style.display = 'block';
         preview.value = '正在获取...';
         
-        alert('开始请求 hosts 文件');
-        
         var url = '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>';
         alert('请求 URL: ' + url);
+        
+        if (!XHR) {
+            alert('XHR 对象未定义');
+            return;
+        }
         
         XHR.get(url, null,
             function(x, data) {
@@ -243,6 +253,12 @@
     window.onload = function() {
         loadConfig();
         switchTab('settings');
+        
+        // 为按钮添加事件监听
+        document.querySelector('input[value="<%:View Current Hosts%>"]').addEventListener('click', function() {
+            alert('按钮被点击');  // 测试按钮点击是否生效
+            showCurrentHosts();
+        });
     }
 //]]></script>
 
