@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+      - "t*"
   workflow_dispatch:
 
 # 添加权限配置
@@ -24,6 +25,24 @@ jobs:
             exit 1
           fi
           echo "github环境检查通过，继续执行"
+
+      - name: Set Release Info
+        id: release_info
+        run: |
+          # 获取标签名
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          
+          # 判断是否为测试版本（t开头）
+          if [[ $TAG_NAME == t* ]]; then
+            # 生成时间戳
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            echo "RELEASE_VERSION=v0.1-$TIMESTAMP" >> $GITHUB_ENV
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_ENV
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+          fi
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -80,5 +99,8 @@ jobs:
         with:
           files: release/*
           body_path: release.txt
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: ${{ env.RELEASE_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
