@@ -164,6 +164,13 @@ jobs:
           chmod +x ./scripts/i18n-scan.pl
           chmod +x ./scripts/i18n-update.pl
           
+          # 确保 po 文件使用正确的编码和换行符
+          dos2unix po/zh-cn/autoupdatehosts.po
+          
           # 生成翻译模板
-          ./scripts/i18n-scan.pl . > po/templates/autoupdatehosts.pot
+          ./scripts/i18n-scan.pl . > po/templates/autoupdatehosts.pot || true
+          cat po/templates/autoupdatehosts.pot
           ./scripts/i18n-update.pl po/zh-cn/autoupdatehosts.po po/templates/autoupdatehosts.pot
+          
+          # 检查更新后的翻译文件
+          cat po/zh-cn/autoupdatehosts.po
