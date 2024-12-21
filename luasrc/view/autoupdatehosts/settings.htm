@@ -9,6 +9,9 @@
     padding: 10px;
     margin: 10px 0;
     display: none;
+    white-space: pre-wrap;
+    font-family: monospace;
+    background-color: #f5f5f5;
 }
 .tab-button {
     margin-right: 10px;
@@ -67,7 +70,7 @@
                     </div>
                 </div>
                 
-                <textarea id="preview" class="preview-area" readonly></textarea>
+                <div id="preview" class="preview-area"></div>
                 
                 <div class="cbi-value-field">
                     <input type="button" id="btn_view_hosts" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" />
@@ -113,11 +116,26 @@
     function previewHosts() {
         var preview = document.getElementById('preview');
         preview.style.display = 'block';
+        preview.innerHTML = '正在获取...';
         
         XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null,
             function(x, data) {
-                document.getElementById('preview').value = data;
-                previewContent = data;
+                if (x.status === 200) {
+                    var content = data || '预览内容为空';
+                    content = content.replace(/&/g, '&amp;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;')
+                                   .replace(/"/g, '&quot;')
+                                   .replace(/'/g, '&#039;')
+                                   .replace(/\n/g, '<br>');
+                    preview.innerHTML = content;
+                    previewContent = data;
+                } else {
+                    preview.innerHTML = '预览失败';
+                }
+            },
+            function() {
+                preview.innerHTML = '预览失败';
             }
         );
     }
@@ -215,15 +233,26 @@
     function showCurrentHosts() {
         var preview = document.getElementById('preview');
         preview.style.display = 'block';
-        preview.value = '正在获取...';
+        preview.innerHTML = '正在获取...';
         
         XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
             function(x, data) {
-                preview.value = data || '当前 hosts 文件为空';
-                previewContent = data;
+                if (x.status === 200) {
+                    var content = data || '当前 hosts 文件为空';
+                    content = content.replace(/&/g, '&amp;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;')
+                                   .replace(/"/g, '&quot;')
+                                   .replace(/'/g, '&#039;')
+                                   .replace(/\n/g, '<br>');
+                    preview.innerHTML = content;
+                    previewContent = data;
+                } else {
+                    preview.innerHTML = '获取 hosts 文件失败';
+                }
             },
             function() {
-                preview.value = '获取 hosts 文件失败';
+                preview.innerHTML = '获取 hosts 文件失败';
             }
         );
     }
