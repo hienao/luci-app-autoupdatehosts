@@ -212,40 +212,41 @@
         );
     }
 
+    function showCurrentHosts() {
+        var preview = document.getElementById('preview');
+        preview.style.display = 'block';
+        preview.value = '正在获取...';
+        
+        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+            function(x, data) {
+                preview.value = data || '当前 hosts 文件为空';
+                previewContent = data;
+            },
+            function() {
+                preview.value = '获取 hosts 文件失败';
+            }
+        );
+    }
+
     window.onload = function() {
         loadConfig();
         switchTab('settings');
-        
-        // 绑定所有按钮事件
-        document.getElementById('btn_view_hosts').onclick = function() {
-            var preview = document.getElementById('preview');
-            if (!preview) {
-                alert('找不到 preview 元素');
-                return;
-            }
-            
-            preview.style.display = 'block';
-            preview.value = '正在获取...';
-            
-            var url = '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>';
-            
-            XHR.get(url, null,
-                function(x, data) {
-                    if (x.status == 200) {
-                        preview.value = data || '获取数据为空';
-                        previewContent = data;
-                    } else {
-                        preview.value = "获取 hosts 文件失败：" + x.statusText;
-                    }
-                },
-                function(x) {
-                    preview.value = "请求失败，请检查网络连接";
-                }
-            );
-        };
-        
-        document.getElementById('btn_preview_hosts').onclick = previewHosts;
-        document.getElementById('btn_save').onclick = saveAll;
+
+        // 绑定按钮事件
+        var btnViewHosts = document.getElementById('btn_view_hosts');
+        if (btnViewHosts) {
+            btnViewHosts.onclick = showCurrentHosts;
+        }
+
+        var btnPreviewHosts = document.getElementById('btn_preview_hosts');
+        if (btnPreviewHosts) {
+            btnPreviewHosts.onclick = previewHosts;
+        }
+
+        var btnSave = document.getElementById('btn_save');
+        if (btnSave) {
+            btnSave.onclick = saveAll;
+        }
     }
 //]]></script>
 

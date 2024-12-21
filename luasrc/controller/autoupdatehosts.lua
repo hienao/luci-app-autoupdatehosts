@@ -1,98 +1,30 @@
 module("luci.controller.autoupdatehosts", package.seeall)
 
 function index()
+    if not nixio.fs.access("/etc/config/autoupdatehosts") then
+        return
+    end
+
     local e = entry({"admin", "services", "autoupdatehosts"}, 
-        template("autoupdatehosts/settings"), 
+        alias("admin", "services", "autoupdatehosts", "settings"),
         _("Auto Update Hosts"), 60)
     e.dependent = false
     e.acl_depends = { "luci-app-autoupdatehosts" }
-    
-    entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts"))
-    entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts"))
-    entry({"admin", "services", "autoupdatehosts", "save"}, call("save_hosts"))
-    entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config"))
-    entry({"admin", "services", "autoupdatehosts", "save_config"}, call("save_config"))
-    entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log"))
+
+    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "save"}, call("save_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "save_config"}, call("save_config")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
 end
 
-function get_current_hosts()
-    local sys = require "luci.sys"
-    local util = require "luci.util"
+function get_hosts()
     local fs = require "nixio.fs"
-    local uci = require "luci.model.uci".cursor()
-    
-    -- 添加调试日志
-    sys.exec("logger -t autoupdatehosts 'get_current_hosts 函数被调用'")
-    
-    -- 定义日志文件路径
-    local logfile = "/tmp/autoupdatehosts.log"
-    
-    -- 确保日志文件存在并有权限
-    local function ensure_logfile()
-        if not fs.access(logfile) then
-            sys.exec("touch " .. logfile)
-            sys.exec("chmod 777 " .. logfile)
-            sys.exec("chown root:root " .. logfile)
-        end
-    end
-    
-    -- 写入日志
-    local function log(msg)
-        local timestamp = os.date("%Y-%m-%d %H:%M:%S")
-        local log_msg = string.format("[%s] %s\n", timestamp, msg)
-        -- 使用 root 权限写入日志
-        sys.exec(string.format("echo '%s' >> %s", log_msg:gsub("'", "'\\''"), logfile))
-    end
-    
-    -- 确保日志文件存在
-    ensure_logfile()
-    
-    log("=== 开始新的日志记录 ===")
-    log("开始读取 hosts 文件")
-    
-    -- 检查文件是否存在并输出文件信息
-    log("检查 hosts 文件权限")
-    local file_info = sys.exec("ls -l /etc/hosts")
-    log("hosts 文件信息: " .. (file_info or "无法获取文件信息"))
-    
-    if not fs.access("/etc/hosts") then
-        log("错误：hosts 文件不存在")
-        luci.http.status(500, "Hosts file not found")
-        luci.http.prepare_content("text/plain")
-        luci.http.write("Error: Hosts file not found")
-        return
-    end
-    
-    -- 尝试直接读取文件内容
-    local direct_content = fs.readfile("/etc/hosts")
-    log(string.format("直接读取文件大小: %d 字节", #(direct_content or "")))
-    
-    -- 使用 cat 命令读取
-    local content = sys.exec("cat /etc/hosts")
-    log(string.format("通过 cat 命令读取文件大小: %d 字节", #(content or "")))
-    
-    -- 输出文件内容预览
-    if content and #content > 0 then
-        local preview = util.trim(util.split(content, "\n", 3)[1] or "")
-        log(string.format("文件内容预览: %s", preview))
-        
-        log("成功读取 hosts 文件")
-        luci.http.prepare_content("text/plain")
-        luci.http.write(content)
-    else
-        log("错误：无法读取 hosts 文件内容")
-        -- 尝试使用其他命令读取
-        local alt_content = sys.exec("sudo cat /etc/hosts")
-        log(string.format("尝试使用 sudo 读取大小: %d 字节", #(alt_content or "")))
-        
-        -- 如果所有读取方式都失败，返回提示信息
-        luci.http.prepare_content("text/plain")
-        luci.http.write("当前 hosts 文件为空或无法读取，请检查文件权限或重新配置系统。\n\n" ..
-                       "建议操作：\n" ..
-                       "1. 检��� /etc/hosts 文件是否存在\n" ..
-                       "2. 检查文件权限\n" ..
-                       "3. 尝试重新创建默认的 hosts 文件")
-    end
+    local content = fs.readfile("/etc/hosts") or ""
+    luci.http.prepare_content("text/plain")
+    luci.http.write(content)
 end
 
 function get_config()
