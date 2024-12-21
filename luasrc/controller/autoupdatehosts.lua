@@ -24,6 +24,9 @@ function get_current_hosts()
     local fs = require "nixio.fs"
     local hosts_file = "/etc/hosts"
     local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
+    
+    -- 设置响应类型为纯文本
+    luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
 

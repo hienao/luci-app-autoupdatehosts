@@ -241,14 +241,15 @@
         
         XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>', null,
             function(x, data) {
-                if (data) {
-                    // 对内容进行HTML转义
-                    var content = data.replace(/&/g, '&amp;')
-                                    .replace(/</g, '&lt;')
-                                    .replace(/>/g, '&gt;')
-                                    .replace(/"/g, '&quot;')
-                                    .replace(/'/g, '&#039;')
-                                    .replace(/\n/g, '<br>');
+                var content = String(data || '').trim();
+                
+                if (content) {
+                    content = content.replace(/&/g, '&amp;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;')
+                                   .replace(/"/g, '&quot;')
+                                   .replace(/'/g, '&#039;')
+                                   .replace(/\n/g, '<br>');
                     preview.innerHTML = content;
                     previewContent = data;
                 } else {
