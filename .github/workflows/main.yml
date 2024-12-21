@@ -113,8 +113,23 @@ jobs:
           find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
           find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下文件：" >> release.txt
+          echo "包��以下文件：" >> release.txt
           ls -1 release/ >> release.txt
+
+      # 添加清理步骤，在创建新发布之前执行
+      - name: Delete Old Prereleases
+        env:
+          GH_TOKEN: ${{ secrets.REPO_TOKEN }}
+        run: |
+          # 获取所有预发布和草稿版本
+          releases=$(gh api repos/${{ github.repository }}/releases \
+            --jq '.[] | select(.prerelease or .draft) | .id')
+          
+          # 删除找到的版本
+          for release_id in $releases; do
+            echo "Deleting release ID: $release_id"
+            gh api -X DELETE repos/${{ github.repository }}/releases/$release_id
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
