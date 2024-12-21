@@ -166,14 +166,10 @@
     }
     
     function saveAll() {
-        if (!previewContent) {
-            alert('<%:Please preview content first%>');
-            return;
-        }
-        
         // 保存配置
         var configData = new FormData();
-        configData.append('enabled', document.getElementById('enabled').checked ? "1" : "0");
+        var isEnabled = document.getElementById('enabled').checked;
+        configData.append('enabled', isEnabled ? "1" : "0");
         configData.append('urls', document.getElementById('urls').value);
         configData.append('schedule', document.getElementById('schedule').value);
         
@@ -184,29 +180,32 @@
             if (configXhr.status >= 200 && configXhr.status < 300) {
                 var result = JSON.parse(configXhr.responseText);
                 if (result.code === 0) {
-                    // 保存 hosts 内容
-                    var hostsData = new FormData();
-                    hostsData.append('content', previewContent);
-                    
-                    var hostsXhr = new XMLHttpRequest();
-                    hostsXhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/save_hosts', true);
-                    
-                    hostsXhr.onload = function() {
-                        if (hostsXhr.status >= 200 && hostsXhr.status < 300) {
-                            var hostsResult = JSON.parse(hostsXhr.responseText);
-                            if (hostsResult.code === 0) {
-                                alert('<%:Save Success%>');
-                            } else {
-                                alert(hostsResult.msg);
+                    // 只有在启用状态下才更新 hosts 文件
+                    if (isEnabled) {
+                        // 配置保存成功后，更新 hosts 文件
+                        var hostsXhr = new XMLHttpRequest();
+                        hostsXhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/save_hosts_etc', true);
+                        
+                        hostsXhr.onload = function() {
+                            if (hostsXhr.status >= 200 && hostsXhr.status < 300) {
+                                var hostsResult = JSON.parse(hostsXhr.responseText);
+                                if (hostsResult.code === 0) {
+                                    alert('<%:Save Success%>');
+                                } else {
+                                    alert(hostsResult.msg);
+                                }
                             }
-                        }
-                    };
-                    
-                    hostsXhr.onerror = function() {
-                        alert('保存 hosts 失败');
-                    };
-                    
-                    hostsXhr.send(hostsData);
+                        };
+                        
+                        hostsXhr.onerror = function() {
+                            alert('更新 hosts 文件失败');
+                        };
+                        
+                        hostsXhr.send();
+                    } else {
+                        // 如果是禁用状态，直接提示保存成功
+                        alert('<%:Save Success%>');
+                    }
                 } else {
                     alert(result.msg);
                 }

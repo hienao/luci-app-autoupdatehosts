@@ -1,5 +1,26 @@
 module("luci.controller.autoupdatehosts", package.seeall)
 
+-- 添加日志函数
+local function write_log(level, msg)
+    local fs = require "nixio.fs"
+    local logfile = "/tmp/autoupdatehosts.log"
+    
+    -- 确保日志文件存在
+    if not fs.access(logfile) then
+        fs.writefile(logfile, "")
+    end
+    
+    -- 获取当前时间
+    local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+    -- 格式化日志消息
+    local log_msg = string.format("[%s] [%s] %s\n", timestamp, level, msg)
+    
+    -- 读取现有日志
+    local current_log = fs.readfile(logfile) or ""
+    -- 追加新日志
+    fs.writefile(logfile, current_log .. log_msg)
+end
+
 function index()
     if not nixio.fs.access("/etc/config/autoupdatehosts") then
         return
@@ -14,11 +35,11 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "save"}, call("save_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "save_config"}, call("save_config")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "fetch_hosts"}, call("fetch_hosts"), nil).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "save_hosts_etc"}, call("save_hosts_etc")).leaf = true
 end
 
 function get_current_hosts()
@@ -49,7 +70,14 @@ function fetch_url_content(url)
     
     -- 如果 wget 失败，尝试使用 curl
     if not content or #content == 0 then
+        write_log("error", string.format("wget 获取失败，尝试使用 curl: %s", url))
         content = sys.exec(string.format("curl -sfL '%s'", url:gsub("'", "'\\''")))
+    end
+    
+    if content and #content > 0 then
+        write_log("info", string.format("成功获取URL内容: %s (大小: %d字节)", url, #content))
+    else
+        write_log("error", string.format("获取URL内容失败: %s", url))
     end
     
     return content or ""
@@ -114,6 +142,7 @@ end
 
 function save_config()
     local uci = require "luci.model.uci".cursor()
+    local sys = require "luci.sys"
     local data = luci.http.formvalue()
     
     uci:foreach("autoupdatehosts", "config", function(s)
@@ -128,35 +157,21 @@ function save_config()
     
     uci:commit("autoupdatehosts")
     
+    -- 确保脚本有执行权限
+    sys.exec("chmod +x /usr/bin/autoupdatehosts.sh")
+    
     -- 更新定时任务
     if data.enabled == "1" then
-        local sys = require "luci.sys"
         sys.exec("sed -i '/luci-autoupdatehosts/d' /etc/crontabs/root")
         sys.exec(string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", data.schedule))
         sys.exec("/etc/init.d/cron restart")
     else
-        local sys = require "luci.sys"
         sys.exec("sed -i '/luci-autoupdatehosts/d' /etc/crontabs/root")
         sys.exec("/etc/init.d/cron restart")
     end
     
     luci.http.prepare_content("application/json")
     luci.http.write_json({code = 0, msg = "保存成功"})
-end
-
-function save_hosts()
-    local fs = require "nixio.fs"
-    local content = luci.http.formvalue("content")
-    
-    if content then
-        fs.writefile("/etc/hosts", content)
-        luci.sys.exec("/etc/init.d/dnsmasq restart")
-        luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 0, msg = "保存成功"})
-    else
-        luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "内容不能为空"})
-    end
 end
 
 function get_log()
@@ -188,4 +203,81 @@ function fetch_hosts()
     -- 设置响应类型为纯文本
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
+end
+
+function save_hosts_etc()
+    local fs = require "nixio.fs"
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+    
+    write_log("info", "开始执行 save_hosts_etc")
+    
+    -- 读取当前 hosts 文件
+    local current_hosts = fs.readfile("/etc/hosts")
+    if not current_hosts then
+        write_log("error", "读取 hosts 文件失败")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "读取 hosts 文件失败"})
+        return
+    end
+    write_log("info", string.format("当前 hosts 文件大小: %d 字节", #current_hosts))
+    
+    -- 定义标记
+    local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
+    local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
+    
+    -- 创建备份：移除标记之间的内容
+    local clean_hosts = current_hosts
+    if current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束") then
+        local before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
+        local after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+        clean_hosts = (before_mark or "") .. (after_mark or "")
+    end
+    
+    -- 保存清理后的内容到备份文件
+    fs.writefile("/etc/hosts.bak", clean_hosts)
+    
+    -- 从配置获取 URLs
+    local urls = uci:get_first("autoupdatehosts", "config", "urls") or ""
+    if urls == "" then
+        write_log("error", "未配置 URLs")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "未配置 URLs"})
+        return
+    end
+    write_log("info", string.format("获取到 URLs 配置: %s", urls))
+    
+    -- 准备新的 hosts 内容
+    local before_mark = clean_hosts:gsub("%s*$", "\n")
+    local after_mark = ""
+    
+    -- 获取新的订阅内容
+    local new_content = ""
+    for url in urls:gmatch("[^\r\n]+") do
+        local content = fetch_url_content(url)
+        if content and #content > 0 then
+            -- 确保每个URL的内容前后都有换行
+            new_content = new_content .. content:gsub("^%s*(.-)%s*$", "%1") .. "\n"
+        end
+    end
+    
+    -- 组合最终内容
+    local result = before_mark .. start_mark .. new_content .. end_mark .. after_mark
+    
+    -- 移除多余的空行
+    result = result:gsub("\n\n+", "\n\n")
+    
+    -- 保存到 hosts 文件
+    if fs.writefile("/etc/hosts", result) then
+        write_log("info", string.format("成功更新 hosts 文件，大小: %d 字节", #result))
+        -- 重启 dnsmasq
+        sys.exec("/etc/init.d/dnsmasq restart")
+        write_log("info", "重启 dnsmasq 服务完成")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 0, msg = "更新成功"})
+    else
+        write_log("error", "写入 hosts 文件失败")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "写入文件失败"})
+    end
 end 
