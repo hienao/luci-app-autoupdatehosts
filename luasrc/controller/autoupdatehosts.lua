@@ -73,9 +73,20 @@ function preview_hosts()
     local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
     local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
-    -- 移除旧的订阅内容
-    local before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
-    local after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+    -- 检查是否存在标记
+    local has_marks = current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
+    
+    local before_mark, after_mark
+    
+    if has_marks then
+        -- 如果存在标记，移除旧的订阅内容
+        before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
+        after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+    else
+        -- 如果不存在标记，将整个当前内容作为 before_mark
+        before_mark = current_hosts
+        after_mark = ""
+    end
     
     -- 确保 before_mark 和 after_mark 有正确的结尾和开头
     before_mark = (before_mark or ""):gsub("%s*$", "\n")
