@@ -104,7 +104,8 @@ jobs:
         run: |
           cd sdk
           make defconfig
-          make package/luci-app-autoupdatehosts/compile V=s -j$(nproc)
+          make package/luci-app-autoupdatehosts/clean
+          make package/luci-app-autoupdatehosts/compile V=s
 
       - name: Organize and Release
         run: |
