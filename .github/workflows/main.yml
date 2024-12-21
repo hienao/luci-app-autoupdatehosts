@@ -113,7 +113,7 @@ jobs:
           find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
           find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包��以下文件：" >> release.txt
+          echo "包以下文件：" >> release.txt
           ls -1 release/ >> release.txt
 
       # 添加清理步骤，在创建新发布之前执行
@@ -143,3 +143,9 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: false
           token: ${{ secrets.REPO_TOKEN }}
+
+      - name: Generate translations
+        run: |
+          mkdir -p po/zh-cn
+          ./scripts/i18n-scan.pl . > po/templates/autoupdatehosts.pot
+          ./scripts/i18n-update.pl po/zh-cn/autoupdatehosts.po po/templates/autoupdatehosts.pot

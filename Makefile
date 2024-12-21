@@ -7,8 +7,8 @@ include $(TOPDIR)/rules.mk
 
 NAME:=autoupdatehosts
 PKG_NAME:=luci-app-$(NAME)
-LUCI_TITLE:=LuCI support for autoupdatehosts Router
-LUCI_DESCRIPTION:=provides Web UI to update your hosts. 
+LUCI_TITLE:=LuCI support for autoupdatehosts
+LUCI_DESCRIPTION:=Auto update hosts file from URLs
 
 LUCI_PKGARCH:=all
 PKG_VERSION:=1
