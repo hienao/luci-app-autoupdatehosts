@@ -152,8 +152,8 @@ jobs:
           mkdir -p scripts
           
           # 获取 LuCI 的 i18n 工具
-          wget https://raw.githubusercontent.com/openwrt/luci/master/modules/luci-base/src/i18n-scan.pl -O scripts/i18n-scan.pl
-          wget https://raw.githubusercontent.com/openwrt/luci/master/modules/luci-base/src/i18n-update.pl -O scripts/i18n-update.pl
+          wget https://raw.githubusercontent.com/openwrt/luci/master/build/i18n-scan.pl -O scripts/i18n-scan.pl
+          wget https://raw.githubusercontent.com/openwrt/luci/master/build/i18n-update.pl -O scripts/i18n-update.pl
           
           chmod +x ./scripts/i18n-scan.pl
           chmod +x ./scripts/i18n-update.pl
