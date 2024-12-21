@@ -38,14 +38,27 @@ function get_hosts()
         content = ""
     end
     
-    -- 设置响应类型
-    luci.http.prepare_content("text/plain")
+    -- 设置响应类型和头部
+    luci.http.prepare_content("text/plain; charset=utf-8")
+    luci.http.header("Cache-Control", "no-cache")
     
     -- 写入响应
     if content and #content > 0 then
-        luci.http.write(content)
+        -- 确保内容是字符串并且不为空
+        if type(content) == "string" then
+            -- 直接写入内容
+            luci.http.write(content)
+            sys.exec("logger -t autoupdatehosts 'Successfully sent hosts content'")
+        else
+            -- 如果不是字符串，转换为字符串
+            local str_content = tostring(content)
+            luci.http.write(str_content)
+            sys.exec("logger -t autoupdatehosts 'Converted content to string'")
+        end
     else
-        luci.http.write("# Hosts file is empty or not readable")
+        -- 返回默认内容
+        luci.http.write("# No content in hosts file\n127.0.0.1 localhost\n")
+        sys.exec("logger -t autoupdatehosts 'Sent default hosts content'")
     end
 end
 
