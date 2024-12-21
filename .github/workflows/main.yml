@@ -113,7 +113,7 @@ jobs:
           find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
           find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
           echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包以下文件：" >> release.txt
+          echo "包含以下文件：" >> release.txt
           ls -1 release/ >> release.txt
 
       # 添加清理步骤，在创建新发布之前执行
@@ -146,6 +146,14 @@ jobs:
 
       - name: Generate translations
         run: |
+          # 获取 LuCI 的 i18n 工具
+          wget -O - https://raw.githubusercontent.com/openwrt/luci/master/modules/luci-base/src/i18n-scan.pl > ./scripts/i18n-scan.pl
+          wget -O - https://raw.githubusercontent.com/openwrt/luci/master/modules/luci-base/src/i18n-update.pl > ./scripts/i18n-update.pl
+          chmod +x ./scripts/i18n-scan.pl
+          chmod +x ./scripts/i18n-update.pl
+          # 创建必要的目录
           mkdir -p po/zh-cn
+          mkdir -p po/templates
+          mkdir -p scripts
           ./scripts/i18n-scan.pl . > po/templates/autoupdatehosts.pot
           ./scripts/i18n-update.pl po/zh-cn/autoupdatehosts.po po/templates/autoupdatehosts.pot
