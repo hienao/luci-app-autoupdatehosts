@@ -50,27 +50,40 @@ end
 
 function preview_hosts()
     local fs = require "nixio.fs"
-    local uci = require "luci.model.uci".cursor()
     
+    -- 从请求中获取 URLs
+    local urls = luci.http.formvalue("urls")
+    
+    -- 读取当前 hosts 文件
     local current_hosts = fs.readfile("/etc/hosts") or ""
-    local urls = uci:get_first("autoupdatehosts", "config", "urls") or ""
     
-    local start_mark = "##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##"
-    local end_mark = "##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##"
+    -- 定义标记，确保每个标记都有正确的换行
+    local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
+    local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
     -- 移除旧的订阅内容
-    local before_mark = current_hosts:match("(.-)%" .. start_mark)
-    local after_mark = current_hosts:match(end_mark .. "(.*)")
-    before_mark = before_mark or ""
-    after_mark = after_mark or ""
+    local before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
+    local after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+    
+    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
+    before_mark = (before_mark or ""):gsub("%s*$", "\n")
+    after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
     -- 获取新的订阅内容
-    local new_content = "\n"
+    local new_content = ""
     for url in urls:gmatch("[^\r\n]+") do
-        new_content = new_content .. fetch_url_content(url) .. "\n"
+        local content = fetch_url_content(url)
+        if content and #content > 0 then
+            -- 确保每个URL的内容前后都有换行
+            new_content = new_content .. content:gsub("^%s*(.-)%s*$", "%1") .. "\n"
+        end
     end
     
+    -- 组合最终内容，确保各部分之间有正确的换行
     local result = before_mark .. start_mark .. new_content .. end_mark .. after_mark
+    
+    -- 移除多余的空行
+    result = result:gsub("\n\n+", "\n\n")
     
     luci.http.prepare_content("text/plain")
     luci.http.write(result)
