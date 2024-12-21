@@ -43,8 +43,15 @@ function get_config()
 end
 
 function fetch_url_content(url)
-    local http = require "luci.sys.http"
-    local content = http.request_to_buffer(url)
+    local sys = require "luci.sys"
+    -- 使用 wget 命令获取内容
+    local content = sys.exec(string.format("wget -qO- '%s'", url:gsub("'", "'\\''")))
+    
+    -- 如果 wget 失败，尝试使用 curl
+    if not content or #content == 0 then
+        content = sys.exec(string.format("curl -sfL '%s'", url:gsub("'", "'\\''")))
+    end
+    
     return content or ""
 end
 
@@ -53,6 +60,11 @@ function preview_hosts()
     
     -- 从请求中获取 URLs
     local urls = luci.http.formvalue("urls")
+    if not urls or urls == "" then
+        luci.http.prepare_content("text/plain")
+        luci.http.write("# No URLs provided")
+        return
+    end
     
     -- 读取当前 hosts 文件
     local current_hosts = fs.readfile("/etc/hosts") or ""
