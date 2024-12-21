@@ -12,7 +12,7 @@ function index()
     e.acl_depends = { "luci-app-autoupdatehosts" }
 
     entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "save"}, call("save_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
@@ -20,46 +20,11 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
 end
 
-function get_hosts()
+function get_current_hosts()
     local fs = require "nixio.fs"
-    local sys = require "luci.sys"
-    
-    -- 添加调试日志
-    sys.exec("logger -t autoupdatehosts 'Reading hosts file'")
-    
-    -- 读取文件内容
-    local content = fs.readfile("/etc/hosts")
-    
-    -- 记录内容长度
-    if content then
-        sys.exec(string.format("logger -t autoupdatehosts 'Hosts file content length: %d'", #content))
-    else
-        sys.exec("logger -t autoupdatehosts 'Failed to read hosts file'")
-        content = ""
-    end
-    
-    -- 设置响应类型和头部
-    luci.http.prepare_content("text/plain; charset=utf-8")
-    luci.http.header("Cache-Control", "no-cache")
-    
-    -- 写入响应
-    if content and #content > 0 then
-        -- 确保内容是字符串并且不为空
-        if type(content) == "string" then
-            -- 直接写入内容
-            luci.http.write(content)
-            sys.exec("logger -t autoupdatehosts 'Successfully sent hosts content'")
-        else
-            -- 如果不是字符串，转换为字符串
-            local str_content = tostring(content)
-            luci.http.write(str_content)
-            sys.exec("logger -t autoupdatehosts 'Converted content to string'")
-        end
-    else
-        -- 返回默认内容
-        luci.http.write("# No content in hosts file\n127.0.0.1 localhost\n")
-        sys.exec("logger -t autoupdatehosts 'Sent default hosts content'")
-    end
+    local hosts_file = "/etc/hosts"
+    local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
+    luci.http.write(hosts_content)
 end
 
 function get_config()
