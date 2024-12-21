@@ -32,7 +32,7 @@ function index()
     e.dependent = false
     e.acl_depends = { "luci-app-autoupdatehosts" }
 
-    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
@@ -40,6 +40,8 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "fetch_hosts"}, call("fetch_hosts"), nil).leaf = true
     entry({"admin", "services", "autoupdatehosts", "save_hosts_etc"}, call("save_hosts_etc")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "backup_hosts"}, call("backup_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "fetch_backup_hosts"}, call("fetch_backup_hosts")).leaf = true
 end
 
 function get_current_hosts()
@@ -57,7 +59,8 @@ function get_config()
     local config = {
         enabled = uci:get_first("autoupdatehosts", "config", "enabled") or "0",
         urls = uci:get_first("autoupdatehosts", "config", "urls") or "",
-        schedule = uci:get_first("autoupdatehosts", "config", "schedule") or ""
+        schedule = uci:get_first("autoupdatehosts", "config", "schedule") or "",
+        backup_path = uci:get_first("autoupdatehosts", "config", "backup_path") or "/etc/hosts.bak"
     }
     luci.http.prepare_content("application/json")
     luci.http.write_json(config)
@@ -125,7 +128,7 @@ function preview_hosts()
     for url in urls:gmatch("[^\r\n]+") do
         local content = fetch_url_content(url)
         if content and #content > 0 then
-            -- 确保每个URL的内容前后都有换行
+            -- 确保每个URL的内容前后���有换行
             new_content = new_content .. content:gsub("^%s*(.-)%s*$", "%1") .. "\n"
         end
     end
@@ -152,7 +155,8 @@ function save_config()
     local config = uci:section("autoupdatehosts", "config", nil, {
         enabled = data.enabled,
         urls = data.urls,
-        schedule = data.schedule
+        schedule = data.schedule,
+        backup_path = data.backup_path or "/etc/hosts.bak"
     })
     
     uci:commit("autoupdatehosts")
@@ -226,16 +230,19 @@ function save_hosts_etc()
     local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
     local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
-    -- 创建备份：移除标记之间的内容
-    local clean_hosts = current_hosts
+    -- 提取原始内容（不包含标记之间的内容）
+    local before_mark, after_mark
     if current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束") then
-        local before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
-        local after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
-        clean_hosts = (before_mark or "") .. (after_mark or "")
+        before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
+        after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+    else
+        before_mark = current_hosts
+        after_mark = ""
     end
     
-    -- 保存清理后的内容到备份文件
-    fs.writefile("/etc/hosts.bak", clean_hosts)
+    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
+    before_mark = (before_mark or ""):gsub("%s*$", "\n")
+    after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
     -- 从配置获取 URLs
     local urls = uci:get_first("autoupdatehosts", "config", "urls") or ""
@@ -246,10 +253,6 @@ function save_hosts_etc()
         return
     end
     write_log("info", string.format("获取到 URLs 配置: %s", urls))
-    
-    -- 准备新的 hosts 内容
-    local before_mark = clean_hosts:gsub("%s*$", "\n")
-    local after_mark = ""
     
     -- 获取新的订阅内容
     local new_content = ""
@@ -280,4 +283,61 @@ function save_hosts_etc()
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 1, msg = "写入文件失败"})
     end
+end
+
+function backup_hosts()
+    local fs = require "nixio.fs"
+    local sys = require "luci.sys"
+    local uci = require "luci.model.uci".cursor()
+    
+    -- 获取备份路径
+    local backup_path = uci:get_first("autoupdatehosts", "config", "backup_path") or "/etc/hosts.bak"
+    write_log("info", string.format("开始备份 hosts 文件到 %s", backup_path))
+    
+    -- 读取当前 hosts 文件
+    local current_hosts = fs.readfile("/etc/hosts")
+    if not current_hosts then
+        write_log("error", "读取 hosts 文件失败")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "读取 hosts 文件失败"})
+        return
+    end
+    
+    -- 如果备份文件存在，先删除
+    if fs.access(backup_path) then
+        fs.remove(backup_path)
+        write_log("info", "删除已存在的备份文件")
+    end
+    
+    -- 创建新的备份文件
+    if fs.writefile(backup_path, current_hosts) then
+        write_log("info", "hosts 文件备份成功")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 0, msg = "备份成功"})
+    else
+        write_log("error", "hosts 文件备份失败")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "备份失败"})
+    end
+end
+
+function fetch_backup_hosts()
+    local fs = require "nixio.fs"
+    local uci = require "luci.model.uci".cursor()
+    
+    -- 获取备份路径
+    local backup_path = uci:get_first("autoupdatehosts", "config", "backup_path") or "/etc/hosts.bak"
+    
+    if not fs.access(backup_path) then
+        write_log("error", string.format("备份文件不存在: %s", backup_path))
+        luci.http.prepare_content("text/plain")
+        luci.http.write("# 备份文件不存在")
+        return
+    end
+    
+    local hosts_content = fs.readfile(backup_path) or "# 备份文件为空"
+    write_log("info", string.format("读取备份文件，大小: %d 字节", #hosts_content))
+    
+    luci.http.prepare_content("text/plain")
+    luci.http.write(hosts_content)
 end 

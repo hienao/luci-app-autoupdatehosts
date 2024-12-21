@@ -14,10 +14,10 @@ msgid "Cron expression format (e.g., \"0 2 * * *\" for 2 AM daily)"
 msgstr "Cron表达式格式 (例如: \"0 2 * * *\" 表示每天凌晨2点)"
 
 msgid "Hosts URLs"
-msgstr "Hosts地址"
+msgstr "Hosts订阅地址"
 
 msgid "Enter URLs (one per line) for hosts files"
-msgstr "输入hosts文件的URL地址(每行一个)"
+msgstr "输入hosts文件的订阅地址(每行一个)"
 
 msgid "View Current Hosts"
 msgstr "查看当前Hosts"
@@ -33,3 +33,18 @@ msgstr "请先预览内容"
 
 msgid "Save Success"
 msgstr "保存成功"
+
+msgid "Backup Hosts"
+msgstr "备份 Hosts"
+
+msgid "Backup Success"
+msgstr "备份成功"
+
+msgid "View Backup Hosts"
+msgstr "查看备份Hosts"
+
+msgid "Backup Path"
+msgstr "备份路径"
+
+msgid "Path to save hosts backup file"
+msgstr "hosts备份文件的保存路径"
