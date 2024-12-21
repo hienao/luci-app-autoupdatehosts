@@ -96,3 +96,6 @@ msgstr "获取备份文件失败"
 
 msgid "Backup failed"
 msgstr "备份失败"
+
+msgid "Clear log failed"
+msgstr "清空日志失败"

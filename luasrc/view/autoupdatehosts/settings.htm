@@ -184,8 +184,8 @@
             <div class="cbi-section-node">
                 <div class="cbi-value">
                     <div class="cbi-value-field">
-                        <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:Start Log%>" onclick="toggleLog()" />
-                        <input type="button" class="btn cbi-button cbi-button-remove" value="<%:Clear Log%>" onclick="clearLog()" />
+                        <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:开始记录%>" onclick="toggleLog()" />
+                        <input type="button" class="btn cbi-button cbi-button-remove" value="<%:清除日志%>" onclick="clearLog()" />
                     </div>
                 </div>
                 <div class="cbi-value">
@@ -272,7 +272,7 @@
             if (configXhr.status >= 200 && configXhr.status < 300) {
                 var result = JSON.parse(configXhr.responseText);
                 if (result.code === 0) {
-                    // 只有在启用状态下才新 hosts 文件
+                    // 只有在启用状态下才更新 hosts 文件
                     if (isEnabled) {
                         // 配置保存成功后，更新 hosts 文件
                         var hostsXhr = new XMLHttpRequest();
@@ -369,7 +369,27 @@
     }
 
     function clearLog() {
-        document.getElementById('log_textarea').value = '';
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/clear_log', true);
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                var result = JSON.parse(xhr.responseText);
+                if (result.code === 0) {
+                    document.getElementById('log_textarea').value = '';
+                } else {
+                    alert('<%:Clear log failed%>: ' + result.msg);
+                }
+            } else {
+                alert('<%:Clear log failed%>: ' + xhr.status);
+            }
+        };
+        
+        xhr.onerror = function() {
+            alert('<%:Clear log failed%>: <%:Network error%>');
+        };
+        
+        xhr.send();
     }
 
     function fetchLog() {

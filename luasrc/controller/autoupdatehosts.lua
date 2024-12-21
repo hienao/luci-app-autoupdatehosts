@@ -42,6 +42,7 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "save_hosts_etc"}, call("save_hosts_etc")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "backup_hosts"}, call("backup_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "fetch_backup_hosts"}, call("fetch_backup_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log")).leaf = true
 end
 
 function get_current_hosts()
@@ -119,7 +120,7 @@ function preview_hosts()
         after_mark = ""
     end
     
-    -- 确保 before_mark 和 after_mark 有正确的结尾���开头
+    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
     before_mark = (before_mark or ""):gsub("%s*$", "\n")
     after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
@@ -344,4 +345,20 @@ function fetch_backup_hosts()
     
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
+end
+
+function clear_log()
+    local fs = require "nixio.fs"
+    local logfile = "/tmp/autoupdatehosts.log"
+    
+    -- 清空日志文件
+    if fs.writefile(logfile, "") then
+        write_log("info", "日志已清空")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 0, msg = "日志已清空"})
+    else
+        write_log("error", "清空日志失败")
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "清空日志失败"})
+    end
 end 
