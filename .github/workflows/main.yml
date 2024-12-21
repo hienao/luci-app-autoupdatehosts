@@ -103,11 +103,11 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 清理之前的构建缓存，但保留依赖
-          rm -rf bin/
-          rm -rf build_dir/
-          rm -rf staging_dir/
-          rm -rf tmp/
+          # 只清理包相关的缓存
+          rm -rf bin/packages/*/base/luci-app-autoupdatehosts*
+          rm -rf build_dir/target-*/luci-app-autoupdatehosts*
+          rm -rf staging_dir/target-*/packages/luci-app-autoupdatehosts*
+          rm -rf tmp/info/.files-packageinfo-*
           # 保留 dl/ 目录以缓存下载的依赖
           make defconfig
           make package/luci-app-autoupdatehosts/clean
