@@ -241,22 +241,37 @@
         
         XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
             function(x, data) {
+                console.log('Response status:', x.status);
+                console.log('Raw data:', data);
+                console.log('Data type:', typeof data);
+                console.log('Data length:', data ? data.length : 0);
+                
                 if (x.status === 200) {
-                    var content = data || '当前 hosts 文件为空';
+                    if (data === undefined || data === null || data === '') {
+                        preview.innerHTML = '当前 hosts 文件为空';
+                        return;
+                    }
+                    
+                    var content = String(data);
+                    console.log('Processed content:', content);
+                    
                     content = content.replace(/&/g, '&amp;')
                                    .replace(/</g, '&lt;')
                                    .replace(/>/g, '&gt;')
                                    .replace(/"/g, '&quot;')
                                    .replace(/'/g, '&#039;')
                                    .replace(/\n/g, '<br>');
+                    
+                    console.log('Escaped content:', content);
                     preview.innerHTML = content;
                     previewContent = data;
                 } else {
-                    preview.innerHTML = '获取 hosts 文件失败';
+                    preview.innerHTML = '获取 hosts 文件失败: ' + x.status;
                 }
             },
-            function() {
-                preview.innerHTML = '获取 hosts 文件失败';
+            function(error) {
+                console.log('Request error:', error);
+                preview.innerHTML = '获取 hosts 文件失败: ' + (error || '未知错误');
             }
         );
     }

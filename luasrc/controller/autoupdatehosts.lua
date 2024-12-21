@@ -22,9 +22,31 @@ end
 
 function get_hosts()
     local fs = require "nixio.fs"
-    local content = fs.readfile("/etc/hosts") or ""
+    local sys = require "luci.sys"
+    
+    -- 添加调试日志
+    sys.exec("logger -t autoupdatehosts 'Reading hosts file'")
+    
+    -- 读取文件内容
+    local content = fs.readfile("/etc/hosts")
+    
+    -- 记录内容长度
+    if content then
+        sys.exec(string.format("logger -t autoupdatehosts 'Hosts file content length: %d'", #content))
+    else
+        sys.exec("logger -t autoupdatehosts 'Failed to read hosts file'")
+        content = ""
+    end
+    
+    -- 设置响应类型
     luci.http.prepare_content("text/plain")
-    luci.http.write(content)
+    
+    -- 写入响应
+    if content and #content > 0 then
+        luci.http.write(content)
+    else
+        luci.http.write("# Hosts file is empty or not readable")
+    end
 end
 
 function get_config()
