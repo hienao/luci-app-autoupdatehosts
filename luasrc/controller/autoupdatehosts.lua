@@ -18,6 +18,7 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "save_config"}, call("save_config")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "fetch_hosts"}, call("fetch_hosts"), nil).leaf = true
 end
 
 function get_current_hosts()
@@ -141,4 +142,14 @@ function get_log()
     
     luci.http.prepare_content("application/json")
     luci.http.write_json({log = result})
+end
+
+function fetch_hosts()
+    local fs = require "nixio.fs"
+    local hosts_file = "/etc/hosts"
+    local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
+    
+    -- 设置响应类型为纯文本
+    luci.http.prepare_content("text/plain")
+    luci.http.write(hosts_content)
 end 

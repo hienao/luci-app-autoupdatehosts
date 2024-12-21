@@ -239,10 +239,12 @@
         preview.style.display = 'block';
         preview.innerHTML = '正在获取...';
         
-        XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_current_hosts")%>', null,
-            function(x, data) {
-                var content = String(data || '').trim();
-                
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_hosts', true);
+        
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                var content = xhr.responseText;
                 if (content) {
                     content = content.replace(/&/g, '&amp;')
                                    .replace(/</g, '&lt;')
@@ -251,15 +253,20 @@
                                    .replace(/'/g, '&#039;')
                                    .replace(/\n/g, '<br>');
                     preview.innerHTML = content;
-                    previewContent = data;
+                    previewContent = xhr.responseText;
                 } else {
                     preview.innerHTML = '# 当前 hosts 文件为空';
                 }
-            },
-            function() {
-                preview.innerHTML = '获取 hosts 文件失败';
+            } else {
+                preview.innerHTML = '获取 hosts 文件失败: ' + xhr.status;
             }
-        );
+        };
+        
+        xhr.onerror = function() {
+            preview.innerHTML = '获取 hosts 文件失败：网络错误';
+        };
+        
+        xhr.send();
     }
 
     window.onload = function() {
