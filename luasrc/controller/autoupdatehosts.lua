@@ -119,7 +119,7 @@ function preview_hosts()
         after_mark = ""
     end
     
-    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
+    -- 确保 before_mark 和 after_mark 有正确的结尾���开头
     before_mark = (before_mark or ""):gsub("%s*$", "\n")
     after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
@@ -128,7 +128,7 @@ function preview_hosts()
     for url in urls:gmatch("[^\r\n]+") do
         local content = fetch_url_content(url)
         if content and #content > 0 then
-            -- 确保每个URL的内容前后���有换行
+            -- 确保每个URL的内容前后都有换行
             new_content = new_content .. content:gsub("^%s*(.-)%s*$", "%1") .. "\n"
         end
     end
@@ -164,15 +164,19 @@ function save_config()
     -- 确保脚本有执行权限
     sys.exec("chmod +x /usr/bin/autoupdatehosts.sh")
     
-    -- 更新定时任务
-    if data.enabled == "1" then
-        sys.exec("sed -i '/luci-autoupdatehosts/d' /etc/crontabs/root")
+    -- 先移除旧的定时任务
+    sys.exec("sed -i '/luci-autoupdatehosts/d' /etc/crontabs/root")
+    
+    -- 只有在启用状态且设置了更新计划时才添加定时任务
+    if data.enabled == "1" and data.schedule and data.schedule ~= "" then
         sys.exec(string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", data.schedule))
-        sys.exec("/etc/init.d/cron restart")
+        write_log("info", string.format("添加定时任务: %s", data.schedule))
     else
-        sys.exec("sed -i '/luci-autoupdatehosts/d' /etc/crontabs/root")
-        sys.exec("/etc/init.d/cron restart")
+        write_log("info", "未设置定时任务")
     end
+    
+    -- 重启 cron 服务
+    sys.exec("/etc/init.d/cron restart")
     
     luci.http.prepare_content("application/json")
     luci.http.write_json({code = 0, msg = "保存成功"})
