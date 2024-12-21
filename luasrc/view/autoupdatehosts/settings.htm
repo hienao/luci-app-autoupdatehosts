@@ -39,8 +39,10 @@
     box-sizing: border-box;
 }
 .tabs-container {
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
     text-align: center;
+    border-bottom: 2px solid #e6e6e6;
+    padding-bottom: 1px;
 }
 .log-textarea {
     width: 100% !important;
@@ -72,6 +74,46 @@
 .cbi-input-textarea {
     width: 100% !important;
     box-sizing: border-box;
+}
+.tab-button {
+    margin: 0 5px;
+    padding: 8px 20px;
+    border: none;
+    background: none;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    border-radius: 4px 4px 0 0;
+}
+.tab-button:hover {
+    color: #0069d6;
+    background-color: #f8f9fa;
+}
+.tab-button.active {
+    color: #0069d6;
+    background-color: transparent;
+    font-weight: bold;
+}
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #0069d6;
+    border-radius: 2px 2px 0 0;
+}
+.tab-content {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.tab-content.active {
+    display: block;
+    opacity: 1;
 }
 </style>
 
@@ -273,15 +315,32 @@
     var isLogging = false;
 
     function switchTab(tabName) {
+        // 移除所有 tab 的激活状态
         document.querySelectorAll('.tab-button').forEach(function(btn) {
             btn.classList.remove('active');
         });
-        document.getElementById('tab_' + tabName).classList.add('active');
+        
+        // 激活选中的 tab
+        var selectedTab = document.getElementById('tab_' + tabName);
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+        }
 
+        // 隐藏所有内容
         document.querySelectorAll('.tab-content').forEach(function(content) {
             content.classList.remove('active');
+            content.style.opacity = '0';
         });
-        document.getElementById(tabName + '_content').classList.add('active');
+
+        // 显示选中的内容
+        var selectedContent = document.getElementById(tabName + '_content');
+        if (selectedContent) {
+            selectedContent.classList.add('active');
+            // 使用 setTimeout 确保过渡效果正常显示
+            setTimeout(function() {
+                selectedContent.style.opacity = '1';
+            }, 50);
+        }
     }
 
     function toggleLog() {
