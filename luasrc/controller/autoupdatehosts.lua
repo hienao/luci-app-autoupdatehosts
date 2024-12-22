@@ -74,7 +74,7 @@ local function save_yaml(config)
 end
 
 -- 页面注册函数
--- 功能：注册所有Web界面路由和菜单项
+-- 功能：注册所有Web界面路由和单项
 function index()
     if not nixio.fs.access("/etc/config/autoupdatehosts") then
         return
@@ -173,8 +173,8 @@ function preview_hosts()
     -- 从请求中获取 URLs
     local urls = luci.http.formvalue("urls")
     if not urls or urls == "" then
-        luci.http.prepare_content("text/plain")
-        luci.http.write("# No URLs provided")
+        -- 如果没有提供URLs，则返回当前hosts文件内容
+        get_current_hosts()
         return
     end
     
@@ -200,7 +200,7 @@ function preview_hosts()
         after_mark = ""
     end
     
-    -- ���保 before_mark 和 after_mark 有正确的结尾和开头
+    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
     before_mark = (before_mark or ""):gsub("%s*$", "\n")
     after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
@@ -299,7 +299,7 @@ function save_config()
         sys.exec(string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", data.schedule))
         write_log("info", string.format("添加定时任务: %s", data.schedule))
     else
-        write_log("info", "未设��定时任务")
+        write_log("info", "未设置定时任务")
     end
     
     -- 重启 cron 服务
@@ -486,7 +486,7 @@ function backup_hosts()
         return
     end
     
-    -- 如果备份文件存在，先删除
+    -- 如果备份文件存���，先删除
     if fs.access(backup_path) then
         fs.remove(backup_path)
         write_log("info", "删除已存在的备份文件")
@@ -514,13 +514,13 @@ function fetch_backup_hosts()
     local backup_path = yaml_config.backup_path or "/etc/hosts.bak"
     
     if not fs.access(backup_path) then
-        write_log("error", string.format("备份文件不存在: %s", backup_path))
+        write_log("info", string.format("备份文件不存在: %s，返回空文件", backup_path))
         luci.http.prepare_content("text/plain")
-        luci.http.write("# 备份文件不存在")
+        luci.http.write("")
         return
     end
     
-    local hosts_content = fs.readfile(backup_path) or "# 备份文件为空"
+    local hosts_content = fs.readfile(backup_path) or ""
     write_log("info", string.format("读取备份文件，大小: %d 字节", #hosts_content))
     
     luci.http.prepare_content("text/plain")

@@ -55,6 +55,11 @@ function previewHosts() {
     
     var urls = document.getElementsByName('cbid.autoupdatehosts.config.urls')[0].value;
     
+    if (!urls || urls.trim() === '') {
+        viewCurrentHosts();
+        return;
+    }
+    
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/preview', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
