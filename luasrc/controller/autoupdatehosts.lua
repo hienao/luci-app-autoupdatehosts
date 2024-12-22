@@ -98,7 +98,7 @@ function get_current_hosts()
     local hosts_file = "/etc/hosts"
     local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
     
-    -- 设置���应类型为纯文本
+    -- 设置响应类型为纯文本
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
@@ -125,7 +125,7 @@ function fetch_url_content(url)
     local retry_delay = 3  -- seconds
     
     for i = 1, max_retries do
-        -- 使用 wget 命令获取内容
+        -- 使用 wget ���令获取内容
         local content = sys.exec(string.format("wget -qO- '%s'", url:gsub("'", "'\\''")))
         
         if content and #content > 0 then
@@ -316,7 +316,7 @@ function fetch_hosts()
     local hosts_file = "/etc/hosts"
     local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
     
-    -- ���置响应类型为纯文本
+    -- 设置响应类型为纯文本
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
@@ -413,10 +413,8 @@ function save_hosts_etc()
     if fs.writefile("/etc/hosts", result) then
         -- 自动创建备份
         local backup_path = yaml_config.backup_path or "/etc/hosts.bak"
-        local timestamp = os.date("%Y%m%d_%H%M%S")
-        local auto_backup = backup_path:gsub("%.bak$", "_auto_" .. timestamp .. ".bak")
-        if fs.writefile(auto_backup, current_hosts) then
-            write_log("info", string.format("自动创建备份文件: %s", auto_backup))
+        if fs.writefile(backup_path, current_hosts) then
+            write_log("info", string.format("自动创建备份文件: %s", backup_path))
         else
             write_log("warning", "自动备份失败")
         end
@@ -447,24 +445,9 @@ function backup_hosts()
     local yaml_config = load_yaml()
     
     -- 获取备份路径
-    local backup_path = yaml_config.backup_path or "/etc/hosts.bak"
-    -- 自动添加时间戳到备份文件名
-    local timestamp = os.date("%Y%m%d_%H%M%S")
-    local backup_file = backup_path:gsub("%.bak$", "_" .. timestamp .. ".bak")
+    local backup_path = yaml_config.backup_path or "/etc/AutoUpdateHosts/hosts.bak"
     
-    -- 清理旧的备份文件，只保留最近5个
-    local backup_dir = backup_file:match("(.+)/[^/]+$") or "."
-    local old_backups = sys.exec("ls -t " .. backup_dir .. "/*hosts*.bak 2>/dev/null")
-    local count = 0
-    for file in old_backups:gmatch("[^\n]+") do
-        count = count + 1
-        if count > 5 then
-            fs.remove(file)
-            write_log("info", string.format("清理旧的备份文件: %s", file))
-        end
-    end
-    
-    write_log("info", string.format("开始备份 hosts 文件到 %s", backup_file))
+    write_log("info", string.format("开始备份 hosts 文件到 %s", backup_path))
     
     -- 读取当前 hosts 文件
     local current_hosts = fs.readfile("/etc/hosts")
@@ -476,13 +459,13 @@ function backup_hosts()
     end
     
     -- 如果备份文件存在，先删除
-    if fs.access(backup_file) then
-        fs.remove(backup_file)
+    if fs.access(backup_path) then
+        fs.remove(backup_path)
         write_log("info", "删除已存在的备份文件")
     end
     
     -- 创建新的备份文件
-    if fs.writefile(backup_file, current_hosts) then
+    if fs.writefile(backup_path, current_hosts) then
         write_log("info", "hosts 文件备份成功")
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 0, msg = "备份成功"})
