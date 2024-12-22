@@ -1,6 +1,9 @@
 module("luci.controller.autoupdatehosts", package.seeall)
 
--- 添加日志函数
+-- 日志记录函数
+-- @param level: 日志级别(info/warning/error)
+-- @param msg: 日志消息
+-- 功能：写入日志到临时文件，并在超过1MB时自动清理
 local function write_log(level, msg)
     local fs = require "nixio.fs"
     local logfile = "/tmp/autoupdatehosts.log"
@@ -31,10 +34,9 @@ local function write_log(level, msg)
     fs.writefile(logfile, current_log .. log_msg)
 end
 
--- 添加 YAML 配置文件路径
-local YAML_CONFIG = "/etc/AutoUpdateHosts.yaml"
-
--- 添加 YAML 处理函数
+-- YAML配置文件处理函数
+-- 功能：从YAML文件读取配置
+-- @return: 包含配置项的table
 local function load_yaml()
     local fs = require "nixio.fs"
     local content = fs.readfile(YAML_CONFIG)
@@ -55,6 +57,9 @@ local function load_yaml()
     return config
 end
 
+-- YAML配置保存函数
+-- @param config: 要保存的配置table
+-- 功能：将配置保存到YAML文件
 local function save_yaml(config)
     local fs = require "nixio.fs"
     local content = ""
@@ -68,6 +73,8 @@ local function save_yaml(config)
     return fs.writefile(YAML_CONFIG, content)
 end
 
+-- 页面注册函数
+-- 功能：注册所有Web界面路由和菜单项
 function index()
     if not nixio.fs.access("/etc/config/autoupdatehosts") then
         return
@@ -79,7 +86,7 @@ function index()
     e.dependent = false
     e.acl_depends = { "luci-app-autoupdatehosts" }
 
-    entry({"admin", "services", "autoupdatehosts", "setting"}, cbi("autoupdatehosts"), _("Base Setting"), 20).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "setting"}, cbi("autoupdatehosts"), _("Auto Update Hosts"), 20).leaf = true
     entry({"admin", "services", "autoupdatehosts", "log"}, template("autoupdatehosts/log"), _("Log"), 30).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
@@ -93,6 +100,8 @@ function index()
     entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log")).leaf = true
 end
 
+-- 获取当前hosts文件内容
+-- 功能：读取并返回系统当前的hosts文件内容
 function get_current_hosts()
     local fs = require "nixio.fs"
     local hosts_file = "/etc/hosts"
@@ -103,6 +112,8 @@ function get_current_hosts()
     luci.http.write(hosts_content)
 end
 
+-- 获取配置信息
+-- 功能：获取并返回当前的配置信息，优先使用YAML配置
 function get_config()
     local uci = require "luci.model.uci".cursor()
     local yaml_config = load_yaml()
@@ -119,13 +130,16 @@ function get_config()
     luci.http.write_json(config)
 end
 
+-- URL内容获取函数
+-- @param url: 要获取的URL地址
+-- 功能：从URL获取hosts内容，支持重试和多种下载方式
 function fetch_url_content(url)
     local sys = require "luci.sys"
     local max_retries = 3
     local retry_delay = 3  -- seconds
     
     for i = 1, max_retries do
-        -- 使用 wget ���令获取内容
+        -- 使用 wget 命令获取内容
         local content = sys.exec(string.format("wget -qO- '%s'", url:gsub("'", "'\\''")))
         
         if content and #content > 0 then
@@ -151,6 +165,8 @@ function fetch_url_content(url)
     return ""
 end
 
+-- hosts预览功能
+-- 功能：根据提供的URLs预览合并后的hosts内容
 function preview_hosts()
     local fs = require "nixio.fs"
     
@@ -184,7 +200,7 @@ function preview_hosts()
         after_mark = ""
     end
     
-    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
+    -- ���保 before_mark 和 after_mark 有正确的结尾和开头
     before_mark = (before_mark or ""):gsub("%s*$", "\n")
     after_mark = (after_mark or ""):gsub("^%s*", "\n")
     
@@ -208,6 +224,9 @@ function preview_hosts()
     luci.http.write(result)
 end
 
+-- 保存hosts文件
+-- 功能：从配置的URLs获取内容并更新系统hosts文件
+-- 包含自动备份、格式验证、重启dnsmasq等功能
 function save_config()
     local uci = require "luci.model.uci".cursor()
     local sys = require "luci.sys"
@@ -280,7 +299,7 @@ function save_config()
         sys.exec(string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", data.schedule))
         write_log("info", string.format("添加定时任务: %s", data.schedule))
     else
-        write_log("info", "未设置定时任务")
+        write_log("info", "未设��定时任务")
     end
     
     -- 重启 cron 服务
@@ -290,6 +309,8 @@ function save_config()
     luci.http.write_json({code = 0, msg = "保存成功"})
 end
 
+-- 获取日志
+-- 功能：读取并返回临时日志文件内容
 function get_log()
     local sys = require "luci.sys"
     local logfile = "/tmp/autoupdatehosts.log"
@@ -311,6 +332,8 @@ function get_log()
     luci.http.write_json({log = result})
 end
 
+-- 获取hosts文件
+-- 功能：读取并返回系统当前的hosts文件内容
 function fetch_hosts()
     local fs = require "nixio.fs"
     local hosts_file = "/etc/hosts"
@@ -321,6 +344,9 @@ function fetch_hosts()
     luci.http.write(hosts_content)
 end
 
+-- 保存hosts文件
+-- 功能：从配置的URLs获取内容并更新系统hosts文件
+-- 包含自动备份、格式验证、重启dnsmasq等功能
 function save_hosts_etc()
     local fs = require "nixio.fs"
     local sys = require "luci.sys"
@@ -439,6 +465,8 @@ function save_hosts_etc()
     end
 end
 
+-- 备份hosts文件
+-- 功能：将当前系统hosts文件备份到指定位置
 function backup_hosts()
     local fs = require "nixio.fs"
     local sys = require "luci.sys"
@@ -476,6 +504,8 @@ function backup_hosts()
     end
 end
 
+-- 获取备份的hosts文件
+-- 功能：读取并返回备份的hosts文件内容
 function fetch_backup_hosts()
     local fs = require "nixio.fs"
     local yaml_config = load_yaml()
@@ -497,6 +527,8 @@ function fetch_backup_hosts()
     luci.http.write(hosts_content)
 end
 
+-- 清空日志
+-- 功能：清空临时日志文件内容
 function clear_log()
     local fs = require "nixio.fs"
     local logfile = "/tmp/autoupdatehosts.log"

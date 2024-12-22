@@ -1,6 +1,9 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+msgid "Auto Update Hosts"
+msgstr "自动更新Hosts"
+
 msgid "Auto Update Hosts Settings"
 msgstr "自动更新Hosts设置"
 

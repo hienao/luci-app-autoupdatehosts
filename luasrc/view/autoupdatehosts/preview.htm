@@ -1,21 +1,17 @@
 <%+cbi/valueheader%>
-<div id="preview" class="preview-area"></div>
+<div class="cbi-value-field">
+    <textarea id="preview" class="cbi-input-textarea" style="width: 100%; height: 400px;" 
+        readonly="readonly" wrap="off"></textarea>
+</div>
 
 <style>
-.preview-area {
-    min-height: 400px;
-    max-height: 600px;
-    width: 100%;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 10px 0;
-    display: none;
-    white-space: pre;
+#preview {
     font-family: monospace;
     background-color: #f5f5f5;
     font-size: 14px;
     line-height: 1.5;
+    padding: 10px;
+    display: none;
 }
 </style>
 <%+cbi/valuefooter%> 
