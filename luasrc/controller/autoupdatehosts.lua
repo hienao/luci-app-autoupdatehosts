@@ -74,12 +74,13 @@ function index()
     end
 
     local e = entry({"admin", "services", "autoupdatehosts"}, 
-        alias("admin", "services", "autoupdatehosts", "settings"),
+        alias("admin", "services", "autoupdatehosts", "setting"),
         _("Auto Update Hosts"), 60)
     e.dependent = false
     e.acl_depends = { "luci-app-autoupdatehosts" }
 
-    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "setting"}, cbi("autoupdatehosts"), _("Base Setting"), 20).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "log"}, template("autoupdatehosts/log"), _("Log"), 30).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
@@ -97,7 +98,7 @@ function get_current_hosts()
     local hosts_file = "/etc/hosts"
     local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
     
-    -- 设置响应类型为纯文本
+    -- 设置���应类型为纯文本
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
@@ -164,7 +165,7 @@ function preview_hosts()
     -- 读取当前 hosts 文件
     local current_hosts = fs.readfile("/etc/hosts") or ""
     
-    -- 定义标��确保每个标记都有正确的换行
+    -- 定义标确保每个标记都有正确的换行
     local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
     local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
@@ -315,7 +316,7 @@ function fetch_hosts()
     local hosts_file = "/etc/hosts"
     local hosts_content = fs.readfile(hosts_file) or "# No hosts content"
     
-    -- 设置响应类型为纯文本
+    -- ���置响应类型为纯文本
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
@@ -410,7 +411,7 @@ function save_hosts_etc()
     
     -- 保存到 hosts 文件
     if fs.writefile("/etc/hosts", result) then
-        -- 自动创���备份
+        -- 自动创建备份
         local backup_path = yaml_config.backup_path or "/etc/hosts.bak"
         local timestamp = os.date("%Y%m%d_%H%M%S")
         local auto_backup = backup_path:gsub("%.bak$", "_auto_" .. timestamp .. ".bak")
