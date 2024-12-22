@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# 确保 YAML 配置文件目录存在并设置权限
+touch /etc/AutoUpdateHosts.yaml
+chmod 644 /etc/AutoUpdateHosts.yaml
+
+# 如果 YAML 配置文件存在，则从中恢复配置
+if [ -f /etc/AutoUpdateHosts.yaml ]; then
+    # 读取 YAML 配置并设置到 UCI
+    enabled=$(grep "^enabled:" /etc/AutoUpdateHosts.yaml | cut -d' ' -f2-)
+    urls=$(grep "^urls:" /etc/AutoUpdateHosts.yaml | cut -d' ' -f2-)
+    schedule=$(grep "^schedule:" /etc/AutoUpdateHosts.yaml | cut -d' ' -f2-)
+    backup_path=$(grep "^backup_path:" /etc/AutoUpdateHosts.yaml | cut -d' ' -f2-)
+    
+    uci -q batch <<-EOF >/dev/null
+        delete autoupdatehosts.@config[-1]
+        add autoupdatehosts config
+        set autoupdatehosts.@config[-1].enabled="${enabled:-0}"
+        set autoupdatehosts.@config[-1].urls="${urls}"
+        set autoupdatehosts.@config[-1].schedule="${schedule}"
+        set autoupdatehosts.@config[-1].backup_path="${backup_path:-/etc/hosts.bak}"
+        commit autoupdatehosts
+EOF
+fi
+
+exit 0 
