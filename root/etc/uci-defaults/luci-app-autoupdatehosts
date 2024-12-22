@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# 创建备份目录
+mkdir -p /etc/AutoUpdateHosts
+chmod 755 /etc/AutoUpdateHosts
+
 # 确保 YAML 配置文件目录存在并设置权限
 touch /etc/AutoUpdateHosts.yaml
 chmod 644 /etc/AutoUpdateHosts.yaml

@@ -2,4 +2,4 @@ config config
     option enabled '0'
     option urls ''
     option schedule ''
-    option backup_path '/etc/hosts.bak' 
+    option backup_path '/etc/AutoUpdateHosts/hosts.bak' 
