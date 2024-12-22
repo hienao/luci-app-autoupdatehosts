@@ -1,0 +1,126 @@
+<%+cbi/valueheader%>
+<div class="cbi-value-field">
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="viewCurrentHosts()" />
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Backup Hosts%>" onclick="viewBackupHosts()" />
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Backup Hosts%>" onclick="backupHosts()" />
+</div>
+
+<div id="preview" class="preview-area"></div>
+
+<style>
+.preview-area {
+    min-height: 400px;
+    max-height: 600px;
+    width: 100%;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 10px 0;
+    display: none;
+    white-space: pre;
+    font-family: monospace;
+    background-color: #f5f5f5;
+    font-size: 14px;
+    line-height: 1.5;
+}
+</style>
+
+<script type="text/javascript">
+function viewCurrentHosts() {
+    var preview = document.getElementById('preview');
+    preview.style.display = 'block';
+    preview.textContent = '正在获取...';
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_hosts', true);
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            preview.textContent = xhr.responseText;
+        } else {
+            preview.textContent = '获取 hosts 文件失败: ' + xhr.status;
+        }
+    };
+    
+    xhr.onerror = function() {
+        preview.textContent = '获取 hosts 文件失败：网络错误';
+    };
+    
+    xhr.send();
+}
+
+function viewBackupHosts() {
+    var preview = document.getElementById('preview');
+    preview.style.display = 'block';
+    preview.textContent = '正在获取备份文件...';
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_backup_hosts', true);
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            preview.textContent = xhr.responseText;
+        } else {
+            preview.textContent = '<%:Getting backup file failed%>: <%:Network error%>';
+        }
+    };
+    
+    xhr.onerror = function() {
+        preview.textContent = '<%:Getting backup file failed%>: <%:Network error%>';
+    };
+    
+    xhr.send();
+}
+
+function previewHosts() {
+    var preview = document.getElementById('preview');
+    preview.style.display = 'block';
+    preview.textContent = '<%:Getting backup file%>';
+    
+    var urls = document.getElementsByName('cbid.autoupdatehosts.config.urls')[0].value;
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/preview', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            preview.textContent = xhr.responseText;
+        } else {
+            preview.textContent = '预览失败: ' + xhr.status;
+        }
+    };
+    
+    xhr.onerror = function() {
+        preview.textContent = '预览失败：网络错误';
+    };
+    
+    xhr.send('urls=' + encodeURIComponent(urls));
+}
+
+function backupHosts() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/backup_hosts', true);
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            var result = JSON.parse(xhr.responseText);
+            if (result.code === 0) {
+                alert('<%:Backup Success%>');
+            } else {
+                alert(result.msg);
+            }
+        } else {
+            alert('备份失败: ' + xhr.status);
+        }
+    };
+    
+    xhr.onerror = function() {
+        alert('<%:Backup failed%>: <%:Network error%>');
+    };
+    
+    xhr.send();
+}
+</script>
+<%+cbi/valuefooter%> 

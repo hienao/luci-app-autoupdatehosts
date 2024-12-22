@@ -23,4 +23,7 @@ local backup_path = s:option(Value, "backup_path", translate("Backup Path"))
 backup_path.placeholder = "/etc/hosts.bak"
 backup_path.description = translate("Path to save hosts backup file")
 
+local buttons = s:option(DummyValue, "_dummy")
+buttons.template = "autoupdatehosts/buttons"
+
 return m 
