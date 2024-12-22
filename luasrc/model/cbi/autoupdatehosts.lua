@@ -3,17 +3,17 @@ local m, s
 m = Map("autoupdatehosts", translate("Auto Update Hosts Settings"),
     "")
 
-local description = s:option(DummyValue, "_dummy1", "")
+s = m:section(TypedSection, "config", "")
+s.anonymous = true
+s.addremove = false
+
+local description = m:field(DummyValue, "_dummy1", "")
 description.rawhtml = true
 description.default = [[
     <div class="cbi-section-descr">
         <%:Configure automatic hosts file updates%>
     </div>
 ]]
-
-s = m:section(TypedSection, "config", "")
-s.anonymous = true
-s.addremove = false
 
 local enable = s:option(Flag, "enabled", translate("Enable"))
 enable.rmempty = false
