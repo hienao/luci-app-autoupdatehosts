@@ -124,56 +124,62 @@
 </div>
 
 <script type="text/javascript">
-'use strict';
-'require view';
-'require ui';
-'require form';
-'require xhr';
+var XHR = new XHR();
 
 function viewCurrentHosts() {
-    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null)
-        .then(function(res) {
-            document.getElementById('hosts_content').value = res.responseText;
-        });
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+        function(x, res) {
+            if (res) {
+                document.getElementById('hosts_content').value = res;
+            }
+        }
+    );
 }
 
 function viewBackupHosts() {
-    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null)
-        .then(function(res) {
-            document.getElementById('hosts_content').value = res.responseText;
-        });
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
+        function(x, res) {
+            if (res) {
+                document.getElementById('hosts_content').value = res;
+            }
+        }
+    );
 }
 
 function previewHosts() {
-    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null)
-        .then(function(res) {
-            document.getElementById('hosts_content').value = res.responseText;
-        });
+    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null,
+        function(x, res) {
+            if (res) {
+                document.getElementById('hosts_content').value = res;
+            }
+        }
+    );
 }
 
 function backupHosts() {
-    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null)
-        .then(function(res) {
-            var result = res.json();
+    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null,
+        function(x, result) {
             if (result.code === 0) {
                 ui.addNotification(null, E('p', _('Backup created successfully')));
             } else {
                 ui.addNotification(null, E('p', _('Failed to create backup')));
             }
-        });
+        }
+    );
 }
 
 function saveHosts() {
     var content = document.getElementById('hosts_content').value;
-    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', { content: content })
-        .then(function(res) {
-            var result = res.json();
+    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', 
+        { content: content },
+        function(x, result) {
             if (result.code === 0) {
                 ui.addNotification(null, E('p', _('Hosts saved successfully')));
             } else {
                 ui.addNotification(null, E('p', _('Failed to save hosts')));
             }
-        });
+        }
+    );
 }
 
 window.addEventListener('load', function() {
