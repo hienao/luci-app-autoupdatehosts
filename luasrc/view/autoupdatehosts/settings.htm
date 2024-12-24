@@ -123,6 +123,62 @@
     </div>
 </div>
 
-<script type="text/javascript" src="<%=resource%>/view/autoupdatehosts/settings.js"></script>
+<script type="text/javascript">
+'use strict';
+'require view';
+'require ui';
+'require form';
+'require xhr';
+
+function viewCurrentHosts() {
+    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null)
+        .then(function(res) {
+            document.getElementById('hosts_content').value = res.responseText;
+        });
+}
+
+function viewBackupHosts() {
+    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null)
+        .then(function(res) {
+            document.getElementById('hosts_content').value = res.responseText;
+        });
+}
+
+function previewHosts() {
+    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null)
+        .then(function(res) {
+            document.getElementById('hosts_content').value = res.responseText;
+        });
+}
+
+function backupHosts() {
+    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null)
+        .then(function(res) {
+            var result = res.json();
+            if (result.code === 0) {
+                ui.addNotification(null, E('p', _('Backup created successfully')));
+            } else {
+                ui.addNotification(null, E('p', _('Failed to create backup')));
+            }
+        });
+}
+
+function saveHosts() {
+    var content = document.getElementById('hosts_content').value;
+    xhr.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', { content: content })
+        .then(function(res) {
+            var result = res.json();
+            if (result.code === 0) {
+                ui.addNotification(null, E('p', _('Hosts saved successfully')));
+            } else {
+                ui.addNotification(null, E('p', _('Failed to save hosts')));
+            }
+        });
+}
+
+window.addEventListener('load', function() {
+    viewCurrentHosts();
+});
+</script>
 
 <%+footer%> 

@@ -2,21 +2,21 @@
 'require view';
 'require ui';
 'require form';
+'require xhr';
 
 var refreshTimer = null;
 
 function loadSettings() {
     return new Promise((resolve, reject) => {
-        var xhr = new XHR();
-        xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_settings")%>', null,
-            function(x, data) {
+        xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null)
+            .then(function(res) {
+                var data = res.json();
                 if (data) {
                     resolve(data);
                 } else {
                     reject('Failed to load settings');
                 }
-            }
-        );
+            });
     });
 }
 
@@ -68,14 +68,13 @@ function updateScheduleInputs() {
 }
 
 function viewCurrentHosts() {
-    var xhr = new XHR();
-    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
-        function(x, data) {
+    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null)
+        .then(function(res) {
+            var data = res.responseText;
             if (data) {
                 document.getElementById('hosts_content').value = data;
             }
-        }
-    );
+        });
 }
 
 function viewBackupHosts() {
