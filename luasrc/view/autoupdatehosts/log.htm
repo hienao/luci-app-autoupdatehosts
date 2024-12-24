@@ -1,52 +1,87 @@
 <%+header%>
 
-<style>
-.log-container {
-    padding: 20px;
-    width: 100%;
-    box-sizing: border-box;
-    margin: 0 auto;
-}
-
-.log-content {
-    width: 100%;
-    height: calc(100vh - 250px);
-    min-height: 400px;
-    font-family: monospace;
-    padding: 10px;
-    margin: 10px 0;
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    resize: none;
-    box-sizing: border-box;
-}
-
-.button-group {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-    width: 100%;
-}
-
-.cbi-button {
-    min-width: 120px;
-}
-</style>
-
-<div class="log-container">
+<div class="cbi-map">
     <h2><%:Auto Update Hosts Log%></h2>
     
-    <textarea id="log_content" class="log-content" readonly></textarea>
-    
-    <div class="button-group">
-        <input type="button" class="cbi-button cbi-button-apply" id="btn_refresh" 
-            value="<%:Start Refresh%>" onclick="toggleRefresh()" />
-        <input type="button" class="cbi-button cbi-button-remove" 
-            value="<%:Clear Log%>" onclick="clearLog()" />
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <div class="cbi-value-field">
+                    <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:Start Refresh%>" onclick="toggleRefresh()" />
+                    <input type="button" class="btn cbi-button cbi-button-remove" value="<%:Clear Log%>" onclick="clearLog()" />
+                </div>
+            </div>
+            <div class="cbi-value">
+                <div class="cbi-value-field">
+                    <textarea id="log_content" class="log-textarea" readonly="readonly"></textarea>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<script type="text/javascript" src="<%=resource%>/view/autoupdatehosts/log.js"></script>
+<style>
+.log-textarea {
+    width: 100%;
+    height: 500px;
+    padding: 10px;
+    font-family: monospace;
+    box-sizing: border-box;
+    margin: 10px 0;
+}
+</style>
+
+<script type="text/javascript">
+var XHR = new XHR();
+var refreshTimer = null;
+var isRefreshing = false;
+
+function toggleRefresh() {
+    var btn = document.getElementById('log_control');
+    isRefreshing = !isRefreshing;
+    
+    if (isRefreshing) {
+        btn.value = '<%:Stop Refresh%>';
+        refreshTimer = setInterval(fetchLog, 1000);
+    } else {
+        btn.value = '<%:Start Refresh%>';
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+        }
+    }
+}
+
+function clearLog() {
+    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "clear_log")%>', null,
+        function(x, result) {
+            if (x.status == 200) {
+                document.getElementById('log_content').value = '';
+            } else {
+                alert('<%:Clear log failed%>: ' + x.status);
+            }
+        },
+        function() {
+            alert('<%:Clear log failed%>: <%:Network error%>');
+        }
+    );
+}
+
+function fetchLog() {
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_log")%>', null,
+        function(x, data) {
+            if (data && data.log) {
+                var textarea = document.getElementById('log_content');
+                textarea.value = data.log;
+                textarea.scrollTop = textarea.scrollHeight;
+            }
+        }
+    );
+}
+
+window.onload = function() {
+    fetchLog();
+};
+</script>
 
 <%+footer%> 

@@ -21,33 +21,8 @@ local function write_log(msg)
     end
 end
 
-function index()
-    if not nixio.fs.access("/etc/config/autoupdatehosts") then
-        return
-    end
-
-    -- 创建主菜单项
-    entry({"admin", "services", "autoupdatehosts"}, firstchild(), _("Auto Update Hosts"), 60)
-    
-    -- 创建子菜单项
-    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10)
-    entry({"admin", "services", "autoupdatehosts", "log"}, template("autoupdatehosts/log"), _("Log"), 20)
-    
-    -- API 接口
-    entry({"admin", "services", "autoupdatehosts", "get_settings"}, call("get_settings"))
-    entry({"admin", "services", "autoupdatehosts", "save_settings"}, call("save_settings"))
-    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_current_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "save_hosts"}, call("save_hosts_etc")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_backup"}, call("fetch_backup_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "create_backup"}, call("backup_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log"))
-    entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log"))
-end
-
--- 其他现有函数保持不变...
-
--- 新增函数用于处理设置
-function get_settings()
+-- 加载YAML配置
+local function load_settings()
     local fs = require "nixio.fs"
     local settings = {}
     
@@ -72,6 +47,38 @@ function get_settings()
     settings.cron = settings.cron or ""
     settings.bakPath = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
     
+    return settings
+end
+
+function index()
+    if not nixio.fs.access("/etc/config/autoupdatehosts") then
+        return
+    end
+
+    -- 创建主菜单项
+    entry({"admin", "services", "autoupdatehosts"}, firstchild(), _("Auto Update Hosts"), 60)
+    
+    -- 创建子菜单项
+    entry({"admin", "services", "autoupdatehosts", "settings"}, template("autoupdatehosts/settings"), _("Settings"), 10)
+    entry({"admin", "services", "autoupdatehosts", "log"}, template("autoupdatehosts/log"), _("Log"), 20)
+    
+    -- API 接口
+    entry({"admin", "services", "autoupdatehosts", "get_settings"}, call("get_settings"))
+    entry({"admin", "services", "autoupdatehosts", "save_settings"}, call("save_settings"))
+    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_current_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "save_hosts"}, call("save_hosts_etc")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_backup"}, call("fetch_backup_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "create_backup"}, call("backup_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log"))
+    entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log"))
+end
+
+-- 其他现有函数保持不变...
+
+-- 新增函数用于处理设置
+function get_settings()
+    local settings = load_settings()
     luci.http.prepare_content("application/json")
     luci.http.write_json(settings)
 end
@@ -155,10 +162,10 @@ end
 
 function fetch_backup_hosts()
     local fs = require "nixio.fs"
-    local yaml_config = load_yaml()
+    local settings = load_settings()
     
     -- 获取备份路径
-    local backup_path = yaml_config.bakPath or "/etc/auto_undate_host/hosts.bak"
+    local backup_path = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
     write_log(string.format("获取备份文件内容，路径：%s", backup_path))
     
     if not fs.access(backup_path) then
@@ -177,10 +184,10 @@ end
 
 function backup_hosts()
     local fs = require "nixio.fs"
-    local yaml_config = load_yaml()
+    local settings = load_settings()
     
     -- 获取备份路径
-    local backup_path = yaml_config.bakPath or "/etc/auto_undate_host/hosts.bak"
+    local backup_path = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
     write_log(string.format("开始备份hosts文件到：%s", backup_path))
     
     -- 读取当前 hosts 文件
@@ -201,7 +208,7 @@ function backup_hosts()
     
     -- 创建备份
     if fs.writefile(backup_path, current_hosts) then
-        write_log(string.format("备份成��，大小：%d 字节", #current_hosts))
+        write_log(string.format("备份成功，大小：%d 字节", #current_hosts))
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 0, msg = "Backup created"})
     else
@@ -249,4 +256,24 @@ function clear_log()
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 1, msg = "Failed to clear log"})
     end
+end 
+
+-- 预览hosts内容
+function preview_hosts()
+    local fs = require "nixio.fs"
+    local urls = luci.http.formvalue("urls")
+    
+    write_log("开始预览hosts内容")
+    
+    if not urls or urls == "" then
+        -- 如果没有提供URLs，则返回当前hosts文件内容
+        write_log("未提供URLs，返回当前hosts文件内容")
+        get_current_hosts()
+        return
+    end
+    
+    -- TODO: 这里添加从URLs获取hosts内容的逻辑
+    -- 临时返回当前hosts内容
+    write_log("暂时返回当前hosts文件内容")
+    get_current_hosts()
 end 

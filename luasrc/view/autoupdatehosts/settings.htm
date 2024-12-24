@@ -159,9 +159,14 @@ function viewBackupHosts() {
 function previewHosts() {
     XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', null,
         function(x, res) {
-            if (res) {
-                document.getElementById('hosts_content').value = res;
+            if (x.status == 200) {
+                document.getElementById('hosts_content').value = x.responseText;
+            } else {
+                document.getElementById('hosts_content').value = '预览失败：' + x.status;
             }
+        },
+        function() {
+            document.getElementById('hosts_content').value = '预览失败：网络错误';
         }
     );
 }
