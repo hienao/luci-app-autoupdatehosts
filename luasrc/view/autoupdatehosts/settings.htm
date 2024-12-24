@@ -3,33 +3,38 @@
 <style>
 .main-content {
     padding: 20px;
-    max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .settings-section {
     margin-bottom: 20px;
+    width: 100%;
 }
 
 .settings-row {
     display: flex;
     align-items: center;
     margin-bottom: 15px;
+    width: 100%;
 }
 
 .settings-label {
-    width: 200px;
+    width: 150px;
     flex-shrink: 0;
 }
 
 .settings-input {
     flex-grow: 1;
+    width: calc(100% - 150px);
 }
 
 .schedule-container {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .hosts-editor {
@@ -39,6 +44,7 @@
     padding: 10px;
     margin: 10px 0;
     resize: vertical;
+    box-sizing: border-box;
 }
 
 .button-group {
