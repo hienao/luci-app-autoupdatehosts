@@ -95,6 +95,7 @@ function save_settings()
     content = string.format("enable: %s\n", settings.enable or "false")
     content = content .. string.format("cron: %s\n", settings.cron or "")
     content = content .. string.format("bakPath: %s\n", settings.bakPath or "/etc/auto_undate_host/hosts.bak")
+    content = content .. string.format("urls: %s\n", settings.urls or "")
     
     -- 保存设置
     if fs.writefile(SETTINGS_FILE, content) then
@@ -261,19 +262,47 @@ end
 -- 预览hosts内容
 function preview_hosts()
     local fs = require "nixio.fs"
-    local urls = luci.http.formvalue("urls")
+    local urls_json = luci.http.formvalue("urls")
+    local urls = {}
+    
+    if urls_json then
+        urls = luci.jsonc.parse(urls_json)
+    end
     
     write_log("开始预览hosts内容")
     
-    if not urls or urls == "" then
+    if not urls or #urls == 0 then
         -- 如果没有提供URLs，则返回当前hosts文件内容
         write_log("未提供URLs，返回当前hosts文件内容")
         get_current_hosts()
         return
     end
     
-    -- TODO: 这里添加从URLs获取hosts内容的逻辑
-    -- 临时返回当前hosts内容
-    write_log("暂时返回当前hosts文件内容")
-    get_current_hosts()
+    -- 获取所有URL的内容
+    local combined_content = ""
+    local wget = "wget -qO- "
+    
+    for _, url in ipairs(urls) do
+        write_log(string.format("正在获取URL内容：%s", url))
+        
+        -- 使用wget获取内容
+        local cmd = string.format("%s %s", wget, url)
+        local content = io.popen(cmd):read("*a")
+        
+        if content and #content > 0 then
+            write_log(string.format("成功获取内容，大小：%d 字节", #content))
+            combined_content = combined_content .. "\n" .. content
+        else
+            write_log(string.format("获取内容失败：%s", url))
+        end
+    end
+    
+    if #combined_content > 0 then
+        write_log(string.format("合并后的hosts内容大小：%d 字节", #combined_content))
+        luci.http.prepare_content("text/plain")
+        luci.http.write(combined_content)
+    else
+        write_log("所有URL都获取失败，返回当前hosts内容")
+        get_current_hosts()
+    end
 end 
