@@ -2,6 +2,7 @@ module("luci.controller.autoupdatehosts", package.seeall)
 
 local SETTINGS_FILE = "/etc/auto_undate_host/settings.yaml"
 local LOG_FILE = "/tmp/auto_undate_host/log.txt"
+local HOSTS_FILE = "/etc/hosts"
 
 function index()
     if not nixio.fs.access("/etc/config/autoupdatehosts") then
@@ -18,10 +19,10 @@ function index()
     -- API 接口
     entry({"admin", "services", "autoupdatehosts", "get_settings"}, call("get_settings"))
     entry({"admin", "services", "autoupdatehosts", "save_settings"}, call("save_settings"))
-    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_hosts"))
-    entry({"admin", "services", "autoupdatehosts", "save_hosts"}, call("save_hosts"))
-    entry({"admin", "services", "autoupdatehosts", "get_backup"}, call("get_backup"))
-    entry({"admin", "services", "autoupdatehosts", "create_backup"}, call("create_backup"))
+    entry({"admin", "services", "autoupdatehosts", "get_hosts"}, call("get_current_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "save_hosts"}, call("save_hosts_etc")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "get_backup"}, call("fetch_backup_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "create_backup"}, call("backup_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log"))
     entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log"))
 end
@@ -92,5 +93,40 @@ function save_settings()
     else
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 1, msg = "Failed to save settings"})
+    end
+end 
+
+-- 获取当前hosts文件内容
+function get_current_hosts()
+    local fs = require "nixio.fs"
+    local hosts_content = fs.readfile(HOSTS_FILE) or ""
+    
+    luci.http.prepare_content("text/plain")
+    luci.http.write(hosts_content)
+end
+
+-- 保存hosts文件内容
+function save_hosts_etc()
+    local fs = require "nixio.fs"
+    local content = luci.http.formvalue("content")
+    
+    if content then
+        -- 先备份当前文件
+        backup_hosts()
+        
+        -- 保存新内容
+        if fs.writefile(HOSTS_FILE, content) then
+            -- 重启 dnsmasq
+            os.execute("/etc/init.d/dnsmasq restart")
+            
+            luci.http.prepare_content("application/json")
+            luci.http.write_json({code = 0, msg = "Hosts saved"})
+        else
+            luci.http.prepare_content("application/json")
+            luci.http.write_json({code = 1, msg = "Failed to save hosts"})
+        end
+    else
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = "No content provided"})
     end
 end 
