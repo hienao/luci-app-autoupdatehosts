@@ -138,6 +138,9 @@ function save_hosts_etc()
     
     if content then
         write_log(string.format("准备保存hosts文件，内容大小：%d 字节", #content))
+        -- 确保内容有正确的换行
+        content = content:gsub("\r\n", "\n"):gsub("\n\n+", "\n\n")
+        
         -- 先备份当前文件
         backup_hosts()
         
@@ -209,7 +212,7 @@ function backup_hosts()
     
     -- 创建备份
     if fs.writefile(backup_path, current_hosts) then
-        write_log(string.format("备份成功，大小：%d 字节", #current_hosts))
+        write_log(string.format("备份成功，大小：%d ���节", #current_hosts))
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 0, msg = "Backup created"})
     else
@@ -259,50 +262,85 @@ function clear_log()
     end
 end 
 
--- 预览hosts内容
+-- hosts预览功能
+-- 功能：根据提供的URLs预览合并后的hosts内容
 function preview_hosts()
     local fs = require "nixio.fs"
     local urls_json = luci.http.formvalue("urls")
     local urls = {}
     
+    write_log("开始预览hosts内容")
+    
     if urls_json then
         urls = luci.jsonc.parse(urls_json)
     end
     
-    write_log("开始预览hosts内容")
-    
     if not urls or #urls == 0 then
-        -- 如果没有提供URLs，则返回当前hosts文件内容
         write_log("未提供URLs，返回当前hosts文件内容")
         get_current_hosts()
         return
     end
     
-    -- 获取所有URL的内容
-    local combined_content = ""
+    -- 读取当前 hosts 文件
+    local current_hosts = fs.readfile(HOSTS_FILE) or ""
+    
+    -- 定义标记，确保每个标记都有正确的换行
+    local start_mark = "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##\n"
+    local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
+    
+    -- 检查是否存在标记
+    local has_marks = current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
+    
+    local before_mark, after_mark
+    
+    if has_marks then
+        -- 如果存在标记，移除旧的订阅内容
+        before_mark = current_hosts:match("(.-)%s*##订阅hosts内容开始")
+        after_mark = current_hosts:match("##订阅hosts内容结束.-##%s*(.*)")
+        write_log("检测到现有标记，将更新订阅内容")
+    else
+        -- 如果不存在标记，将整个当前内容作为 before_mark
+        before_mark = current_hosts
+        after_mark = ""
+        write_log("未检测到标记，将添加新的订阅内容")
+    end
+    
+    -- 确保 before_mark 和 after_mark 有正确的结尾和开头
+    before_mark = (before_mark or ""):gsub("%s*$", "\n")
+    after_mark = (after_mark or ""):gsub("^%s*", "\n")
+    
+    -- 获取新的订阅内容
+    local new_content = ""
     local wget = "wget -qO- "
     
     for _, url in ipairs(urls) do
         write_log(string.format("正在获取URL内容：%s", url))
-        
         -- 使用wget获取内容
         local cmd = string.format("%s %s", wget, url)
         local content = io.popen(cmd):read("*a")
         
         if content and #content > 0 then
+            -- 确保每个URL的内容前后都有换行
+            content = content:gsub("^%s*(.-)%s*$", "%1")
+            new_content = new_content .. content .. "\n"
             write_log(string.format("成功获取内容，大小：%d 字节", #content))
-            combined_content = combined_content .. "\n" .. content
         else
-            write_log(string.format("获取内容失败：%s", url))
+            write_log(string.format("获取���容失败：%s", url))
         end
     end
     
-    if #combined_content > 0 then
-        write_log(string.format("合并后的hosts内容大小：%d 字节", #combined_content))
+    if #new_content > 0 then
+        -- 组合最终内容，确保各部分之间有正确的换行
+        local result = before_mark .. start_mark .. new_content .. end_mark .. after_mark
+        
+        -- 移除多余的空行
+        result = result:gsub("\n\n+", "\n\n")
+        
+        write_log(string.format("合并后的hosts内容大小：%d 字节", #result))
         luci.http.prepare_content("text/plain")
-        luci.http.write(combined_content)
+        luci.http.write(result)
     else
-        write_log("所有URL都获取失败，返回当前hosts内容")
+        write_log("所有URL获取失败，返回当前hosts内容")
         get_current_hosts()
     end
 end 
