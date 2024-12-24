@@ -8,7 +8,7 @@ function viewCurrentHosts() {
     preview.value = '正在获取...';
     
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "fetch_hosts")%>', true);
+    xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_hosts', true);
     
     xhr.onload = function() {
         if (xhr.status >= 200 && xhr.status < 300) {
