@@ -1,10 +1,33 @@
 <%+cbi/valueheader%>
 <div class="cbi-value-field">
-    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="viewCurrentHosts()" />
-    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Backup Hosts%>" onclick="viewBackupHosts()" />
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="showCurrentHosts()" />
+    <input type="button" class="btn cbi-button cbi-button-apply" value="<%:View Backup Hosts%>" onclick="showBackupHosts()" />
     <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
     <input type="button" class="btn cbi-button cbi-button-apply" value="<%:Backup Hosts%>" onclick="backupHosts()" />
 </div>
 
-<script type="text/javascript" src="<%=resource%>/view/autoupdatehosts/autoupdatehosts.js"></script>
+<script type="text/javascript">
+function showCurrentHosts() {
+    var preview = document.getElementById('preview');
+    preview.style.display = 'block';
+    preview.value = '正在获取...';
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_hosts', true);
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            preview.value = xhr.responseText;
+        } else {
+            preview.value = '获取 hosts 文件失败: ' + xhr.status;
+        }
+    };
+    
+    xhr.onerror = function() {
+        preview.value = '获取 hosts 文件失败：网络错误';
+    };
+    
+    xhr.send();
+}
+</script>
 <%+cbi/valuefooter%> 

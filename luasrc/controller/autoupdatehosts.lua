@@ -74,7 +74,7 @@ local function save_yaml(config)
 end
 
 -- 页面注册函数
--- 功能：注册所有Web界面路由和单项
+-- 功能：注册所有Web界面路由和��项
 function index()
     if not nixio.fs.access("/etc/config/autoupdatehosts") then
         return
@@ -88,16 +88,12 @@ function index()
 
     entry({"admin", "services", "autoupdatehosts", "setting"}, cbi("autoupdatehosts"), _("Auto Update Hosts"), 20).leaf = true
     entry({"admin", "services", "autoupdatehosts", "log"}, template("autoupdatehosts/log"), _("Log"), 30).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_current_hosts"}, call("get_current_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_config"}, call("get_config")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "save_config"}, call("save_config")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "get_log"}, call("get_log")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "fetch_hosts"}, call("fetch_hosts"), nil).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "save_hosts_etc"}, call("save_hosts_etc")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "backup_hosts"}, call("backup_hosts")).leaf = true
+    
+    -- 确保这些 API 路由正确注册
+    entry({"admin", "services", "autoupdatehosts", "fetch_hosts"}, call("get_current_hosts")).leaf = true
     entry({"admin", "services", "autoupdatehosts", "fetch_backup_hosts"}, call("fetch_backup_hosts")).leaf = true
-    entry({"admin", "services", "autoupdatehosts", "clear_log"}, call("clear_log")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "preview"}, call("preview_hosts")).leaf = true
+    entry({"admin", "services", "autoupdatehosts", "backup_hosts"}, call("backup_hosts")).leaf = true
 end
 
 -- 获取当前hosts文件内容
@@ -131,7 +127,7 @@ function get_config()
 end
 
 -- URL内容获取函数
--- @param url: 要获取的URL地址
+-- @param url: ���获取的URL地址
 -- 功能：从URL获取hosts内容，支持重试和多种下载方式
 function fetch_url_content(url)
     local sys = require "luci.sys"
@@ -274,7 +270,7 @@ function save_config()
     
     uci:commit("autoupdatehosts")
     
-    -- 同时保存到 YAML
+    -- 同时保存�� YAML
     local yaml_config = {
         enabled = data.enabled,
         urls = data.urls,
@@ -486,7 +482,7 @@ function backup_hosts()
         return
     end
     
-    -- 如果备份文件存���，先删除
+    -- 如果备份文件存在，先删除
     if fs.access(backup_path) then
         fs.remove(backup_path)
         write_log("info", "删除已存在的备份文件")
