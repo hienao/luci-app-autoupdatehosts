@@ -1,537 +1,122 @@
 <%+header%>
 
 <style>
-.preview-area {
-    min-height: 400px;
-    max-height: 600px;
-    width: calc(100% - 160px);
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 10px 0;
-    white-space: pre;
-    font-family: monospace;
-    background-color: #f5f5f5;
-    font-size: 14px;
-    line-height: 1.5;
-    margin-left: 160px;
+.main-content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
-.tab-button {
-    margin-right: 10px;
+
+.settings-section {
     margin-bottom: 20px;
 }
-.tab-button.active {
-    background-color: #0069d6;
-    color: white;
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
 }
-.tab-content {
-    display: none;
+
+.settings-label {
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.settings-input {
+    flex-grow: 1;
+}
+
+.schedule-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hosts-editor {
     width: 100%;
-}
-.tab-content.active {
-    display: block;
-}
-.main-container {
-    padding: 1rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-.tabs-container {
-    margin-bottom: 2rem;
-    text-align: center;
-    border-bottom: 2px solid #e6e6e6;
-    padding-bottom: 1px;
-}
-.log-textarea {
-    width: 100% !important;
-    height: 500px !important;
-    padding: 10px;
+    height: 400px;
     font-family: monospace;
-    box-sizing: border-box;
+    padding: 10px;
     margin: 10px 0;
+    resize: vertical;
 }
-.buttons-container {
+
+.button-group {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-top: 15px;
-    width: calc(100% - 160px);
-    margin-left: 160px;
+    margin-top: 20px;
 }
-.buttons-container .cbi-button {
-    margin: 0;
-}
-.cbi-value {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 10px;
-}
-.cbi-value-title {
-    width: 150px;
-    padding-top: 6px;
-    padding-right: 10px;
-    flex-shrink: 0;
-}
-.cbi-value-field {
-    flex-grow: 1;
-    max-width: calc(100% - 160px);
-}
-.cbi-input-textarea {
-    width: 100% !important;
-    box-sizing: border-box;
-}
-.tab-button {
-    margin: 0 5px;
-    padding: 8px 20px;
-    border: none;
-    background: none;
-    color: #666;
-    font-size: 14px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
-    border-radius: 4px 4px 0 0;
-}
-.tab-button:hover {
-    color: #0069d6;
-    background-color: #f8f9fa;
-}
-.tab-button.active {
-    color: #0069d6;
-    background-color: transparent;
-    font-weight: bold;
-}
-.tab-button.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: #0069d6;
-    border-radius: 2px 2px 0 0;
-}
-.tab-content {
-    display: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-.tab-content.active {
-    display: block;
-    opacity: 1;
+
+.cbi-button {
+    min-width: 120px;
 }
 </style>
 
-<div class="main-container">
-    <h2><%:Auto Update Hosts%></h2>
-
-    <div class="tabs-container">
-        <input type="button" id="tab_settings" class="cbi-button tab-button" value="<%:Settings%>" onclick="switchTab('settings')" />
-        <input type="button" id="tab_log" class="cbi-button tab-button" value="<%:Log%>" onclick="switchTab('log')" />
-    </div>
-
-    <div id="settings_content" class="tab-content">
-        <div class="cbi-map-descr"><%:Configure automatic hosts file updates%></div>
-        <div class="cbi-section">
-            <div class="cbi-section-node">
-                <div class="cbi-value">
-                    <label class="cbi-value-title"><%:Enable%></label>
-                    <div class="cbi-value-field">
-                        <input type="checkbox" id="enabled" />
-                    </div>
-                </div>
-                
-                <div class="cbi-value">
-                    <label class="cbi-value-title"><%:Update Schedule%></label>
-                    <div class="cbi-value-field">
-                        <input type="text" id="schedule" class="cbi-input-text" placeholder="<%:Leave empty to disable scheduled task%>" />
-                        <div class="cbi-value-description"><%:Cron expression format (e.g., "0 2 * * *" for 2 AM daily)%></div>
-                    </div>
-                </div>
-                
-                <div class="cbi-value">
-                    <label class="cbi-value-title"><%:Hosts URLs%></label>
-                    <div class="cbi-value-field">
-                        <textarea id="urls" class="cbi-input-textarea" style="height: 100px;"></textarea>
-                        <div class="cbi-value-description"><%:Enter URLs (one per line) for hosts files%></div>
-                    </div>
-                </div>
-                
-                <div class="cbi-value">
-                    <label class="cbi-value-title"><%:Backup Path%></label>
-                    <div class="cbi-value-field">
-                        <input type="text" id="backup_path" class="cbi-input-text" placeholder="/etc/hosts.bak" />
-                        <div class="cbi-value-description"><%:hosts备份文件的保存路径%></div>
-                    </div>
-                </div>
-                
-                <div class="cbi-value">
-                    <label class="cbi-value-title"><%:Preview Content%></label>
-                    <div id="preview" class="preview-area"></div>
-                </div>
-                
-                <div class="cbi-value">
-                    <div class="cbi-value-title"></div>
-                    <div class="cbi-value-field buttons-container">
-                        <input type="button" id="btn_view_hosts" class="btn cbi-button cbi-button-apply" value="<%:View Current Hosts%>" />
-                        <input type="button" id="btn_view_backup_hosts" class="btn cbi-button cbi-button-apply" value="<%:View Backup Hosts%>" />
-                        <input type="button" id="btn_preview_hosts" class="btn cbi-button cbi-button-apply" value="<%:Preview Hosts%>" />
-                        <input type="button" id="btn_backup_hosts" class="btn cbi-button cbi-button-apply" value="<%:Backup Hosts%>" />
-                        <input type="button" id="btn_save" class="btn cbi-button cbi-button-save" value="<%:Save%>" />
-                    </div>
-                </div>
+<div class="main-content">
+    <h2><%:Auto Update Hosts Settings%></h2>
+    
+    <div class="settings-section">
+        <div class="settings-row">
+            <label class="settings-label"><%:Enable%></label>
+            <div class="settings-input">
+                <input type="checkbox" id="enable" onchange="saveSettings()" />
             </div>
         </div>
-    </div>
 
-    <div id="log_content" class="tab-content">
-        <div class="cbi-section">
-            <div class="cbi-section-node">
-                <div class="cbi-value">
-                    <div class="cbi-value-field">
-                        <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:开始记录%>" onclick="toggleLog()" />
-                        <input type="button" class="btn cbi-button cbi-button-remove" value="<%:清除日志%>" onclick="clearLog()" />
-                    </div>
-                </div>
-                <div class="cbi-value">
-                    <div class="cbi-value-field">
-                        <textarea id="log_textarea" class="log-textarea" readonly="readonly"></textarea>
-                    </div>
-                </div>
+        <div class="settings-row">
+            <label class="settings-label"><%:Schedule%></label>
+            <div class="settings-input schedule-container">
+                <select id="schedule_type" onchange="updateScheduleInputs()">
+                    <option value="none"><%:Disabled%></option>
+                    <option value="daily"><%:Daily%></option>
+                    <option value="weekly"><%:Weekly%></option>
+                    <option value="monthly"><%:Monthly%></option>
+                </select>
+                <span id="day_container" style="display:none">
+                    <%:Day%>: <input type="number" id="schedule_day" min="1" max="31" style="width:60px" />
+                </span>
+                <span id="week_container" style="display:none">
+                    <%:Week%>: <select id="schedule_week">
+                        <option value="1"><%:Monday%></option>
+                        <option value="2"><%:Tuesday%></option>
+                        <option value="3"><%:Wednesday%></option>
+                        <option value="4"><%:Thursday%></option>
+                        <option value="5"><%:Friday%></option>
+                        <option value="6"><%:Saturday%></option>
+                        <option value="0"><%:Sunday%></option>
+                    </select>
+                </span>
+                <%:Time%>: <input type="number" id="schedule_hour" min="0" max="23" style="width:60px" />
+                : <input type="number" id="schedule_minute" min="0" max="59" style="width:60px" />
             </div>
+        </div>
+
+        <div class="settings-row">
+            <label class="settings-label"><%:Backup Path%></label>
+            <div class="settings-input">
+                <input type="text" id="bakPath" class="cbi-input-text" style="width:100%" 
+                    placeholder="/etc/auto_undate_host/hosts.bak" onchange="saveSettings()" />
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <label class="settings-label"><%:Hosts Content%></label>
+            <div class="settings-input">
+                <textarea id="hosts_content" class="hosts-editor"></textarea>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <input type="button" class="cbi-button cbi-button-apply" value="<%:View Current Hosts%>" onclick="viewCurrentHosts()" />
+            <input type="button" class="cbi-button cbi-button-apply" value="<%:View Backup Hosts%>" onclick="viewBackupHosts()" />
+            <input type="button" class="cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
+            <input type="button" class="cbi-button cbi-button-apply" value="<%:Backup Hosts%>" onclick="backupHosts()" />
+            <input type="button" class="cbi-button cbi-button-save" value="<%:Save%>" onclick="saveHosts()" />
         </div>
     </div>
 </div>
 
-<script type="text/javascript">//<![CDATA[
-    var previewContent = '';
-    
-    function loadConfig() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/get_config', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var data = JSON.parse(xhr.responseText);
-                document.getElementById('enabled').checked = data.enabled === "1";
-                document.getElementById('urls').value = data.urls;
-                document.getElementById('schedule').value = data.schedule;
-            }
-        };
-        
-        xhr.onerror = function() {
-            console.error('<%:Loading config failed%>');
-        };
-        
-        xhr.send();
-    }
-    
-    function previewHosts() {
-        var preview = document.getElementById('preview');
-        preview.style.display = 'block';
-        preview.textContent = '<%:Getting backup file%>';
-        
-        // 直接从输入框获取 URLs
-        var urls = document.getElementById('urls').value;
-        
-        // 发送预览请求
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/preview', true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var content = xhr.responseText;
-                if (content) {
-                    preview.textContent = content;
-                    previewContent = content;
-                } else {
-                    preview.textContent = '# <%:Empty preview content%>';
-                }
-            } else {
-                preview.textContent = '预览失败: ' + xhr.status;
-            }
-        };
-        
-        xhr.onerror = function() {
-            preview.textContent = '预览失败：网络错误';
-        };
-        
-        // 发送 URLs 数据
-        xhr.send('urls=' + encodeURIComponent(urls));
-    }
-    
-    function saveAll() {
-        // 保存配置
-        var configData = new FormData();
-        var isEnabled = document.getElementById('enabled').checked;
-        configData.append('enabled', isEnabled ? "1" : "0");
-        configData.append('urls', document.getElementById('urls').value);
-        configData.append('schedule', document.getElementById('schedule').value);
-        configData.append('backup_path', document.getElementById('backup_path').value || '/etc/hosts.bak');
-        
-        var configXhr = new XMLHttpRequest();
-        configXhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/save_config', true);
-        
-        configXhr.onload = function() {
-            if (configXhr.status >= 200 && configXhr.status < 300) {
-                var result = JSON.parse(configXhr.responseText);
-                if (result.code === 0) {
-                    // 只有在启用状态下才更新 hosts 文件
-                    if (isEnabled) {
-                        // 配置保存成功后，更新 hosts 文件
-                        var hostsXhr = new XMLHttpRequest();
-                        hostsXhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/save_hosts_etc', true);
-                        
-                        hostsXhr.onload = function() {
-                            if (hostsXhr.status >= 200 && hostsXhr.status < 300) {
-                                var hostsResult = JSON.parse(hostsXhr.responseText);
-                                if (hostsResult.code === 0) {
-                                    alert('<%:Save Success%>');
-                                } else {
-                                    alert(hostsResult.msg);
-                                }
-                            }
-                        };
-                        
-                        hostsXhr.onerror = function() {
-                            alert('更新 hosts 文件失败');
-                        };
-                        
-                        hostsXhr.send();
-                    } else {
-                        // 如果是禁用状态，直接提示保存成功
-                        alert('<%:Save Success%>');
-                    }
-                } else {
-                    alert(result.msg);
-                }
-            }
-        };
-        
-        configXhr.onerror = function() {
-            alert('保存配置失败');
-        };
-        
-        configXhr.send(configData);
-    }
-    
-    var logTimer = null;
-    var isLogging = false;
-
-    function switchTab(tabName) {
-        // 移除所有 tab 的激活状态
-        document.querySelectorAll('.tab-button').forEach(function(btn) {
-            btn.classList.remove('active');
-        });
-        
-        // 激活选中的 tab
-        var selectedTab = document.getElementById('tab_' + tabName);
-        if (selectedTab) {
-            selectedTab.classList.add('active');
-        }
-
-        // 隐藏所有内容
-        document.querySelectorAll('.tab-content').forEach(function(content) {
-            content.classList.remove('active');
-            content.style.opacity = '0';
-        });
-
-        // 显示选中的内容
-        var selectedContent = document.getElementById(tabName + '_content');
-        if (selectedContent) {
-            selectedContent.classList.add('active');
-            // 使用 setTimeout 确保过渡效果正常显示
-            setTimeout(function() {
-                selectedContent.style.opacity = '1';
-            }, 50);
-        }
-    }
-
-    function toggleLog() {
-        var btn = document.getElementById('log_control');
-        isLogging = !isLogging;
-        
-        if (isLogging) {
-            btn.value = '<%:Stop Log%>';
-            startLogging();
-        } else {
-            btn.value = '<%:Start Log%>';
-            stopLogging();
-        }
-    }
-
-    function startLogging() {
-        if (logTimer) return;
-        logTimer = setInterval(fetchLog, 1000);
-    }
-
-    function stopLogging() {
-        if (logTimer) {
-            clearInterval(logTimer);
-            logTimer = null;
-        }
-    }
-
-    function clearLog() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/clear_log', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var result = JSON.parse(xhr.responseText);
-                if (result.code === 0) {
-                    document.getElementById('log_textarea').value = '';
-                } else {
-                    alert('<%:Clear log failed%>: ' + result.msg);
-                }
-            } else {
-                alert('<%:Clear log failed%>: ' + xhr.status);
-            }
-        };
-        
-        xhr.onerror = function() {
-            alert('<%:Clear log failed%>: <%:Network error%>');
-        };
-        
-        xhr.send();
-    }
-
-    function fetchLog() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/get_log', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var data = JSON.parse(xhr.responseText);
-                if (data && data.log) {
-                    var textarea = document.getElementById('log_textarea');
-                    textarea.value = data.log;
-                    textarea.scrollTop = textarea.scrollHeight;
-                }
-            }
-        };
-        
-        xhr.onerror = function() {
-            console.error('获取日志失败');
-        };
-        
-        xhr.send();
-    }
-
-    function showCurrentHosts() {
-        var preview = document.getElementById('preview');
-        preview.style.display = 'block';
-        preview.textContent = '正在获取...';
-        
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_hosts', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var content = xhr.responseText;
-                if (content) {
-                    preview.textContent = content;
-                    previewContent = content;
-                } else {
-                    preview.textContent = '# 当前 hosts 文件为空';
-                }
-            } else {
-                preview.textContent = '获取 hosts 文件失败: ' + xhr.status;
-            }
-        };
-        
-        xhr.onerror = function() {
-            preview.textContent = '获取 hosts 文件失败：网络错误';
-        };
-        
-        xhr.send();
-    }
-
-    function backupHosts() {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/backup_hosts', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var result = JSON.parse(xhr.responseText);
-                if (result.code === 0) {
-                    alert('<%:Backup Success%>');
-                } else {
-                    alert(result.msg);
-                }
-            } else {
-                alert('备份失败: ' + xhr.status);
-            }
-        };
-        
-        xhr.onerror = function() {
-            alert('<%:Backup failed%>: <%:Network error%>');
-        };
-        
-        xhr.send();
-    }
-
-    function showBackupHosts() {
-        var preview = document.getElementById('preview');
-        preview.style.display = 'block';
-        preview.textContent = '正在获取备份文件...';
-        
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/fetch_backup_hosts', true);
-        
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                var content = xhr.responseText;
-                if (content) {
-                    preview.textContent = content;
-                    previewContent = content;
-                } else {
-                    preview.textContent = '# 备份文件为空';
-                }
-            } else {
-                preview.textContent = '<%:Getting backup file failed%>: <%:Network error%>';
-            }
-        };
-        
-        xhr.onerror = function() {
-            preview.textContent = '<%:Getting backup file failed%>: <%:Network error%>';
-        };
-        
-        xhr.send();
-    }
-
-    window.onload = function() {
-        loadConfig();
-        switchTab('settings');
-
-        // 绑定按钮事件
-        var btnViewHosts = document.getElementById('btn_view_hosts');
-        if (btnViewHosts) {
-            btnViewHosts.onclick = showCurrentHosts;
-        }
-
-        var btnViewBackupHosts = document.getElementById('btn_view_backup_hosts');
-        if (btnViewBackupHosts) {
-            btnViewBackupHosts.onclick = showBackupHosts;
-        }
-
-        var btnPreviewHosts = document.getElementById('btn_preview_hosts');
-        if (btnPreviewHosts) {
-            btnPreviewHosts.onclick = previewHosts;
-        }
-
-        var btnBackupHosts = document.getElementById('btn_backup_hosts');
-        if (btnBackupHosts) {
-            btnBackupHosts.onclick = backupHosts;
-        }
-
-        var btnSave = document.getElementById('btn_save');
-        if (btnSave) {
-            btnSave.onclick = saveAll;
-        }
-    }
-//]]></script>
+<script type="text/javascript" src="<%=resource%>/view/autoupdatehosts/settings.js"></script>
 
 <%+footer%> 

@@ -1,105 +1,49 @@
 <%+header%>
 
-<div class="cbi-map">
-    <h2><%:Auto Update Hosts Log%></h2>
-    
-    <div class="cbi-section">
-        <div class="cbi-section-node">
-            <div class="cbi-value">
-                <div class="cbi-value-field">
-                    <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:Start Log%>" onclick="toggleLog()" />
-                    <input type="button" class="btn cbi-button cbi-button-remove" value="<%:Clear Log%>" onclick="clearLog()" />
-                </div>
-            </div>
-            <div class="cbi-value">
-                <div class="cbi-value-field">
-                    <textarea id="log_textarea" class="log-textarea" readonly="readonly"></textarea>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
-.log-textarea {
+.log-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.log-content {
     width: 100%;
-    height: 500px;
-    padding: 10px;
+    height: calc(100vh - 300px);
+    min-height: 400px;
     font-family: monospace;
-    box-sizing: border-box;
+    padding: 10px;
     margin: 10px 0;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    resize: none;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cbi-button {
+    min-width: 120px;
 }
 </style>
 
-<script type="text/javascript">
-var logTimer = null;
-var isLogging = false;
-
-function toggleLog() {
-    var btn = document.getElementById('log_control');
-    isLogging = !isLogging;
+<div class="log-container">
+    <h2><%:Auto Update Hosts Log%></h2>
     
-    if (isLogging) {
-        btn.value = '<%:Stop Log%>';
-        startLogging();
-    } else {
-        btn.value = '<%:Start Log%>';
-        stopLogging();
-    }
-}
-
-function startLogging() {
-    if (logTimer) return;
-    logTimer = setInterval(fetchLog, 1000);
-}
-
-function stopLogging() {
-    if (logTimer) {
-        clearInterval(logTimer);
-        logTimer = null;
-    }
-}
-
-function clearLog() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/cgi-bin/luci/admin/services/autoupdatehosts/clear_log', true);
+    <textarea id="log_content" class="log-content" readonly></textarea>
     
-    xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-            document.getElementById('log_textarea').value = '';
-        } else {
-            alert('<%:Clear log failed%>: ' + xhr.status);
-        }
-    };
-    
-    xhr.onerror = function() {
-        alert('<%:Clear log failed%>: <%:Network error%>');
-    };
-    
-    xhr.send();
-}
+    <div class="button-group">
+        <input type="button" class="cbi-button cbi-button-apply" id="btn_refresh" 
+            value="<%:Start Refresh%>" onclick="toggleRefresh()" />
+        <input type="button" class="cbi-button cbi-button-remove" 
+            value="<%:Clear Log%>" onclick="clearLog()" />
+    </div>
+</div>
 
-function fetchLog() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/cgi-bin/luci/admin/services/autoupdatehosts/get_log', true);
-    
-    xhr.onload = function() {
-        if (xhr.status >= 200 && xhr.status < 300) {
-            var data = JSON.parse(xhr.responseText);
-            if (data && data.log) {
-                var textarea = document.getElementById('log_textarea');
-                textarea.value = data.log;
-                textarea.scrollTop = textarea.scrollHeight;
-            }
-        }
-    };
-    
-    xhr.send();
-}
-
-window.onload = function() {
-    fetchLog();
-};
-</script>
+<script type="text/javascript" src="<%=resource%>/view/autoupdatehosts/log.js"></script>
 
 <%+footer%> 
