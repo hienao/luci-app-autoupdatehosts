@@ -25,8 +25,6 @@ jobs:
           fi
 
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
 
       - name: Set Release Info
         id: release_info
@@ -69,18 +67,22 @@ jobs:
             libssl-dev xsltproc rsync unzip \
             dos2unix
 
-      # 缓存 SDK
+      # 只保留 SDK 下载缓存
       - name: Cache SDK
         id: cache-sdk
         uses: actions/cache@v3
         with:
-          path: sdk
-          key: ${{ runner.os }}-openwrt-sdk-22.03.5
+          path: |
+            openwrt-sdk-*.tar.xz
+          key: ${{ runner.os }}-openwrt-sdk-22.03.5-tarball
 
       - name: Setup OpenWrt SDK
-        if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
-          wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+          if [ ! -f openwrt-sdk-*.tar.xz ]; then
+            wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
+          fi
+          # 每次都重新解压 SDK
+          rm -rf sdk/
           tar xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
 
@@ -95,9 +97,9 @@ jobs:
       - name: Setup SDK Environment
         run: |
           cd sdk
-          if [ "${{ steps.cache-feeds.outputs.cache-hit }}" != 'true' ]; then
-            ./scripts/feeds update -a
-          fi
+          # 每次都更新 feeds
+          ./scripts/feeds clean
+          ./scripts/feeds update -a
           ./scripts/feeds install -a
           # 确保语言包相关的 feeds 被正确安装
           ./scripts/feeds install luci-base
@@ -107,24 +109,20 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 更全面但不过度清理的缓存
-          rm -rf bin/packages/*/base/luci-app-autoupdatehosts*
-          rm -rf bin/packages/*/base/luci-i18n-autoupdatehosts*
-          rm -rf build_dir/target-*/luci-app-autoupdatehosts*
-          rm -rf staging_dir/target-*/packages/luci-app-autoupdatehosts*
-          rm -rf staging_dir/target-*/pkginfo/luci-app-autoupdatehosts*
-          rm -rf tmp/info/.packageinfo-luci-app-autoupdatehosts
+          # 清理所有构建相关的目录
+          rm -rf bin/
+          rm -rf build_dir/
+          rm -rf staging_dir/
+          rm -rf tmp/
           
           make defconfig
           # 确保启用了 i18n 支持
           echo "CONFIG_BUILD_PATENTED=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           
-          # 先构建基础包
+          # 构建过程
           make package/luci-base/compile V=s
-          # 然后构建我们的包
           make package/luci-app-autoupdatehosts/compile V=s
-          # 最后构建语言包
           make package/luci-i18n-autoupdatehosts/compile V=s || true
 
       - name: Organize and Release
