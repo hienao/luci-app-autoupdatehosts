@@ -16,15 +16,6 @@ msgstr "更新计划"
 msgid "Subscription URL"
 msgstr "订阅地址"
 
-msgid "Hosts Content"
-msgstr "HOSTS内容"
-
-msgid "View Current Hosts"
-msgstr "查看当前Hosts"
-
-msgid "Preview Hosts"
-msgstr "预览Hosts"
-
 msgid "Save"
 msgstr "保存设置"
 
@@ -47,13 +38,7 @@ msgid "Preview failed"
 msgstr "预览失败"
 
 msgid "One URL per line"
-msgstr "每行一个订阅地址"
-
-msgid "View Backup Hosts File"
-msgstr "查看备份HOSTS文件"
-
-msgid "Backup Current Hosts"
-msgstr "备份当前HOSTS"
+msgstr "每行一个地址"
 
 msgid "Clear Log"
 msgstr "清除日志"
@@ -105,6 +90,24 @@ msgstr "星期六"
 
 msgid "Sunday"
 msgstr "星期日"
+
+msgid "Backup Path"
+msgstr "备份路径"
+
+msgid "Hosts Content"
+msgstr "Hosts内容"
+
+msgid "View Current Hosts"
+msgstr "查看当前Hosts"
+
+msgid "View Backup Hosts File"
+msgstr "查看备份Hosts"
+
+msgid "Preview Hosts"
+msgstr "预览Hosts"
+
+msgid "Backup Current Hosts"
+msgstr "备份当前Hosts"
 
 
 
