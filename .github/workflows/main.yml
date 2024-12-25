@@ -120,8 +120,8 @@ jobs:
           echo "CONFIG_BUILD_PATENTED=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           
-          # 先构建工具链
-          make toolchain/install -j$(nproc)
+          # 使用单线程构建工具链并增加详细输出
+          make toolchain/install -j1 V=sc
           # 再构建包
           make package/luci-base/compile V=s
           make package/luci-app-autoupdatehosts/compile V=s
