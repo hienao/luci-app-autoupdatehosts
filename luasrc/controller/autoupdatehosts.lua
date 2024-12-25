@@ -138,7 +138,7 @@ function save_settings()
         
         -- 处理定时任务
         if settings.enable == "true" and settings.cron and settings.cron ~= "" then
-            write_log("更新定时任务...")
+            write_log("��新定时任务...")
             -- 移除旧的定时任务
             os.execute("sed -i '/autoupdatehosts.sh/d' /etc/crontabs/root")
             -- 添加新的定时任务
@@ -189,25 +189,33 @@ local function validate_hosts_content(content)
         line_number = line_number + 1
         -- 忽略注释和空行
         if not line:match("^%s*#") and not line:match("^%s*$") then
-            -- 检查是否符合hosts文件格式: IP地址 域名
-            local ip, domain = line:match("^%s*([%d%.]+)%s+([%S]+)%s*$")
+            -- 检查是否符合hosts文件格式: IP地址(IPv4或IPv6) 域名
+            local ip, domain = line:match("^%s*([%x%d:%.]+)%s+([%S]+)%s*$")
             if not ip or not domain then
                 table.insert(invalid_lines, line_number)
             else
-                -- 验证IP地址格式
-                local parts = {ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
-                local valid_ip = true
-                if #parts ~= 4 then
-                    valid_ip = false
-                else
-                    for _, part in ipairs(parts) do
-                        local num = tonumber(part)
-                        if not num or num < 0 or num > 255 then
-                            valid_ip = false
-                            break
+                local valid_ip = false
+                -- 验证IPv4地址格式
+                if ip:match("^%d+%.%d+%.%d+%.%d+$") then
+                    local parts = {ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+                    valid_ip = true
+                    if #parts ~= 4 then
+                        valid_ip = false
+                    else
+                        for _, part in ipairs(parts) do
+                            local num = tonumber(part)
+                            if not num or num < 0 or num > 255 then
+                                valid_ip = false
+                                break
+                            end
                         end
                     end
+                -- 验证IPv6地址格式
+                elseif ip:match("^%x*:%x*") then
+                    -- 简单验证IPv6格式，接受包含冒号的十六进制格式
+                    valid_ip = true
                 end
+                
                 if not valid_ip then
                     table.insert(invalid_lines, line_number)
                 else
@@ -317,7 +325,7 @@ function backup_hosts()
         return
     end
     
-    -- 确保备份目录存在
+    -- 确保备份��录存在
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
