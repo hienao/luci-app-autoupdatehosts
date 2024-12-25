@@ -106,13 +106,13 @@
                 </span>
                 <span id="time_container">
                     <%:Time%>: 
-                    <select id="schedule_hour" style="width:60px">
+                    <select id="schedule_hour" style="width:70px">
                         <% for i = 0, 23 do %>
                             <option value="<%=i%>"><%=string.format("%02d", i)%></option>
                         <% end %>
                     </select>
                     :
-                    <select id="schedule_minute" style="width:60px">
+                    <select id="schedule_minute" style="width:70px">
                         <% for i = 0, 59 do %>
                             <option value="<%=i%>"><%=string.format("%02d", i)%></option>
                         <% end %>
@@ -165,7 +165,7 @@ function viewCurrentHosts() {
             }
         },
         function() {
-            document.getElementById('hosts_content').value = '获取失败：网络错误';
+            document.getElementById('hosts_content').value = '获取失败：网络错��';
         }
     );
 }
