@@ -71,7 +71,7 @@
         <div class="settings-row">
             <label class="settings-label"><%:Enable%></label>
             <div class="settings-input">
-                <input type="checkbox" id="enable" onchange="saveSettings()" />
+                <input type="checkbox" id="enable" />
             </div>
         </div>
 
@@ -106,13 +106,13 @@
                 </span>
                 <span id="time_container">
                     <%:Time%>: 
-                    <select id="schedule_hour" style="width:70px">
+                    <select id="schedule_hour" style="width:80px">
                         <% for i = 0, 23 do %>
                             <option value="<%=i%>"><%=string.format("%02d", i)%></option>
                         <% end %>
                     </select>
                     :
-                    <select id="schedule_minute" style="width:70px">
+                    <select id="schedule_minute" style="width:80px">
                         <% for i = 0, 59 do %>
                             <option value="<%=i%>"><%=string.format("%02d", i)%></option>
                         <% end %>
@@ -133,7 +133,7 @@
             <label class="settings-label"><%:Backup Path%></label>
             <div class="settings-input">
                 <input type="text" id="bakPath" class="cbi-input-text" style="width:100%" 
-                    placeholder="/etc/auto_undate_host/hosts.bak" onchange="saveSettings()" />
+                    placeholder="/etc/auto_undate_host/hosts.bak" />
             </div>
         </div>
 
@@ -155,6 +155,8 @@
 </div>
 
 <script type="text/javascript">
+var ui = require('luci.ui');
+
 function viewCurrentHosts() {
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
@@ -165,7 +167,7 @@ function viewCurrentHosts() {
             }
         },
         function() {
-            document.getElementById('hosts_content').value = '获取失败：网络错��';
+            document.getElementById('hosts_content').value = '获取失败：网络错误';
         }
     );
 }
@@ -213,9 +215,9 @@ function backupHosts() {
     XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null,
         function(x, result) {
             if (result.code === 0) {
-                ui.addNotification(null, E('p', _('Backup created successfully')));
+                alert('备份创建成功');
             } else {
-                ui.addNotification(null, E('p', _('Failed to create backup')));
+                alert('备份创建失败');
             }
         }
     );
@@ -227,13 +229,13 @@ function saveHosts() {
         { content: content },
         function(x, result) {
             if (x.status == 200) {
-                ui.addNotification(null, E('p', _('Hosts saved successfully')));
+                alert('保存成功');
             } else {
-                ui.addNotification(null, E('p', _('Failed to save hosts')));
+                alert('保存失败');
             }
         },
         function() {
-            ui.addNotification(null, E('p', _('Failed to save hosts: Network error')));
+            alert('保存失败：网络错误');
         }
     );
 }
