@@ -155,12 +155,8 @@
 </div>
 
 <script type="text/javascript">
-var XHR = new XHR();
-
 function viewCurrentHosts() {
-    var xhr = new XHR();
-    xhr.responseType = 'text';
-    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
             if (x.status == 200) {
                 document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
@@ -175,9 +171,7 @@ function viewCurrentHosts() {
 }
 
 function viewBackupHosts() {
-    var xhr = new XHR();
-    xhr.responseType = 'text';
-    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
         function(x, res) {
             if (x.status == 200) {
                 document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
