@@ -139,3 +139,9 @@ msgstr "保存失败：网络错误"
 msgid "Time"
 msgstr "时间"
 
+msgid "Failed to get hosts"
+msgstr "获取hosts失败"
+
+msgid "Failed to get hosts: Network error"
+msgstr "获取hosts失败：网络错误"
+
