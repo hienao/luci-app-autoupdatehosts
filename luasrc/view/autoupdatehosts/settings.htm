@@ -73,7 +73,7 @@
         <div class="settings-row">
             <label class="settings-label"><%:Update Schedule%></label>
             <div class="settings-input schedule-container">
-                <select id="schedule_type" style="width:30px" onchange="updateScheduleInputs()">
+                <select id="schedule_type" onchange="updateScheduleInputs()">
                     <option value="none"><%:Disabled%></option>
                     <option value="daily"><%:Daily%></option>
                     <option value="weekly"><%:Weekly%></option>
@@ -218,7 +218,31 @@ function saveHosts() {
     );
 }
 
+function updateScheduleInputs() {
+    var type = document.getElementById('schedule_type').value;
+    var dayContainer = document.getElementById('day_container');
+    var weekContainer = document.getElementById('week_container');
+    
+    // 隐藏所有容器
+    dayContainer.style.display = 'none';
+    weekContainer.style.display = 'none';
+    
+    // 根据选择显示对应的输入框
+    switch(type) {
+        case 'monthly':
+            dayContainer.style.display = 'inline';
+            break;
+        case 'weekly':
+            weekContainer.style.display = 'inline';
+            break;
+        case 'daily':
+            // 每天不需要显示额外的选择
+            break;
+    }
+}
+
 window.addEventListener('load', function() {
+    updateScheduleInputs();
     // 获取设置
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_settings")%>', null,
         function(x, data) {
