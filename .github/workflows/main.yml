@@ -72,12 +72,20 @@ jobs:
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
           
-          # 先构建基础包
-          make package/luci-base/compile V=s
-          # 再构建我们的包和语言包
-          make package/luci-app-autoupdatehosts/compile V=s
-          # 确保语言包被构建
-          make package/luci-i18n-autoupdatehosts/compile V=s || true
+          # 显示当前配置
+          echo "Current package configuration:"
+          cat .config | grep -i luci
+          
+          # 检查源文件
+          echo "Checking source files:"
+          ls -la $GITHUB_WORKSPACE/po/zh-cn/
+          
+          # 构建包
+          make package/luci-app-autoupdatehosts/compile V=sc
+          
+          # 检查生成的文件
+          echo "Generated files:"
+          find bin/packages -name "*.ipk"
 
       # 添加清理步骤，在创建新发布之前执行
       - name: Delete Old Prereleases

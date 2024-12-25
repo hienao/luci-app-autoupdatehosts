@@ -21,6 +21,9 @@ define Package/$(PKG_NAME)/conffiles
 /etc/config/autoupdatehosts
 endef
 
+# 添加语言包支持
+LUCI_LANG:=zh-cn
+
 include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
@@ -29,7 +32,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/autoupdatehosts
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/autoupdatehosts
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/usr/bin
@@ -38,7 +40,6 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DATA) ./luasrc/controller/*.lua $(1)/usr/lib/lua/luci/controller/
 	$(INSTALL_DATA) ./luasrc/view/autoupdatehosts/* $(1)/usr/lib/lua/luci/view/autoupdatehosts/
 	$(INSTALL_DATA) ./htdocs/luci-static/resources/view/autoupdatehosts/* $(1)/www/luci-static/resources/view/autoupdatehosts/
-	$(INSTALL_DATA) ./po/zh-cn/autoupdatehosts.po $(1)/usr/lib/lua/luci/i18n/
 	$(INSTALL_DATA) ./root/etc/config/autoupdatehosts $(1)/etc/config/
 	$(INSTALL_BIN) ./root/etc/init.d/autoupdatehosts $(1)/etc/init.d/
 	$(INSTALL_BIN) ./root/usr/bin/autoupdatehosts.sh $(1)/usr/bin/
