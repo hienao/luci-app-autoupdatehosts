@@ -55,6 +55,8 @@ jobs:
           cd sdk
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          # 确保安装 luci-base，它包含了必要的语言支持
+          ./scripts/feeds install luci-base
           ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
 
       - name: Build Package
@@ -66,7 +68,16 @@ jobs:
           rm -rf tmp/info/.packageinfo-*
           
           make defconfig
+          # 添加必要的配置以支持中文语言包
+          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
+          
+          # 先构建基础包
+          make package/luci-base/compile V=s
+          # 再构建我们的包和语言包
           make package/luci-app-autoupdatehosts/compile V=s
+          # 确保语言包被构建
+          make package/luci-i18n-autoupdatehosts/compile V=s || true
 
       # 添加清理步骤，在创建新发布之前执行
       - name: Delete Old Prereleases
