@@ -1,6 +1,3 @@
-msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8"
-
 msgid "Auto Update Hosts"
 msgstr "自动更新Hosts"
 
@@ -16,8 +13,11 @@ msgstr "启用"
 msgid "Update Schedule"
 msgstr "更新计划"
 
-msgid "Subscription URLs"
+msgid "Subscription URL"
 msgstr "订阅地址"
+
+msgid "Hosts Content"
+msgstr "HOSTS内容"
 
 msgid "View Current Hosts"
 msgstr "查看当前Hosts"
@@ -46,14 +46,14 @@ msgstr "加载配置失败"
 msgid "Preview failed"
 msgstr "预览失败"
 
-msgid "Backup Path"
-msgstr "HOSTS备份路径"
-
 msgid "One URL per line"
 msgstr "每行一个订阅地址"
 
-msgid "Hosts Content"
-msgstr "HOSTS内容"
+msgid "View Backup Hosts File"
+msgstr "查看备份HOSTS文件"
+
+msgid "Backup Current Hosts"
+msgstr "备份当前HOSTS"
 
 msgid "Clear Log"
 msgstr "清除日志"
