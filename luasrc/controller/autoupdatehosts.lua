@@ -141,9 +141,6 @@ function save_hosts_etc()
         -- 确保内容有正确的换行
         content = content:gsub("\r\n", "\n"):gsub("\n\n+", "\n\n")
         
-        -- 先备份当前文件
-        backup_hosts()
-        
         -- 保存新内容
         if fs.writefile(HOSTS_FILE, content) then
             -- 重启 dnsmasq
