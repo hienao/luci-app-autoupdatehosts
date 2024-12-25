@@ -15,7 +15,16 @@ LUCI_DEPENDS:=+luci-base
 
 # 修改语言包配置
 LUCI_PKGARCH:=all
-LUCI_LANG_zh-cn:=1
+
+# 确保语言包被构建
+LUCI_EXTRA_TRANSLATIONS:=zh-cn
+
+# 定义语言包
+define Package/$(PKG_NAME)/config
+        config LUCI_APP_AUTOUPDATEHOSTS_INCLUDE_I18N
+                bool "Include i18n translation files"
+                default y
+endef
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/autoupdatehosts

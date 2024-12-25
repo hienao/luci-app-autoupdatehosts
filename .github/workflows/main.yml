@@ -72,6 +72,7 @@ jobs:
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
           echo "CONFIG_ALL_NONSHARED=y" >> .config
+          echo "CONFIG_LUCI_APP_AUTOUPDATEHOSTS_INCLUDE_I18N=y" >> .config
           
           # 显示当前配置
           echo "Current package configuration:"
@@ -86,7 +87,7 @@ jobs:
           
           # 检查生成的文件
           echo "Generated files:"
-          find bin/packages -name "*.ipk"
+          find bin/packages -name "luci-*autoupdatehosts*.ipk"
 
       # 添加清理步骤，在创建新发布之前执行
       - name: Delete Old Prereleases
