@@ -1,7 +1,7 @@
 module("luci.controller.autoupdatehosts", package.seeall)
 
-local SETTINGS_FILE = "/etc/auto_undate_host/settings.yaml"
-local LOG_FILE = "/tmp/auto_undate_host/log.txt"
+local SETTINGS_FILE = "/etc/auto_update_host/settings.yaml"
+local LOG_FILE = "/tmp/auto_update_host/log.txt"
 local HOSTS_FILE = "/etc/hosts"
 
 -- 写入日志
@@ -11,7 +11,7 @@ local function write_log(msg)
     local log_msg = string.format("[%s] %s\n", timestamp, msg)
     
     -- 确保日志目录存在
-    os.execute("mkdir -p /tmp/auto_undate_host")
+    os.execute("mkdir -p /tmp/auto_update_host")
     
     -- 追加日志
     local file = io.open(LOG_FILE, "a")
@@ -27,7 +27,7 @@ local function load_settings()
     local settings = {}
     
     -- 确保目录存在
-    os.execute("mkdir -p /etc/auto_undate_host")
+    os.execute("mkdir -p /etc/auto_update_host")
     
     if fs.access(SETTINGS_FILE) then
         local content = fs.readfile(SETTINGS_FILE)
@@ -45,7 +45,7 @@ local function load_settings()
     -- 设置默认值
     settings.enable = settings.enable or "false"
     settings.cron = settings.cron or ""
-    settings.bakPath = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
+    settings.bakPath = settings.bakPath or "/etc/auto_update_host/hosts.bak"
     
     return settings
 end
@@ -91,14 +91,14 @@ function save_settings()
     write_log("开始保存设置...")
     
     -- 确保目录存在
-    os.execute("mkdir -p /etc/auto_undate_host")
+    os.execute("mkdir -p /etc/auto_update_host")
     
     -- 验证和处理设置值
     settings.enable = settings.enable or "false"
     settings.cron = (settings.cron and settings.cron ~= "") and settings.cron or ""
     settings.bakPath = (settings.bakPath and settings.bakPath ~= "") 
         and settings.bakPath 
-        or "/etc/auto_undate_host/hosts.bak"
+        or "/etc/auto_update_host/hosts.bak"
     
     -- 处理 URLs
     local urls = {}
@@ -280,7 +280,7 @@ function fetch_backup_hosts()
     local settings = load_settings()
     
     -- 获取备份路径
-    local backup_path = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
+    local backup_path = settings.bakPath or "/etc/auto_update_host/hosts.bak"
     write_log(string.format("获取备份文件内容，路径：%s", backup_path))
     
     if not fs.access(backup_path) then
@@ -304,7 +304,7 @@ function backup_hosts()
     local settings = load_settings()
     
     -- 获取备份路径
-    local backup_path = settings.bakPath or "/etc/auto_undate_host/hosts.bak"
+    local backup_path = settings.bakPath or "/etc/auto_update_host/hosts.bak"
     write_log(string.format("开始备份hosts文件到：%s", backup_path))
     
     -- 读取当前 hosts 文件
@@ -349,7 +349,7 @@ function get_log()
     local fs = require "nixio.fs"
     
     -- 确保日志目录和文件存在
-    os.execute("mkdir -p /tmp/auto_undate_host")
+    os.execute("mkdir -p /tmp/auto_update_host")
     if not fs.access(LOG_FILE) then
         fs.writefile(LOG_FILE, "")
     end
@@ -370,7 +370,7 @@ function clear_log()
     local fs = require "nixio.fs"
     
     -- 确保日志目录存在
-    os.execute("mkdir -p /tmp/auto_undate_host")
+    os.execute("mkdir -p /tmp/auto_update_host")
     
     -- 清空日志文件
     if fs.writefile(LOG_FILE, "") then

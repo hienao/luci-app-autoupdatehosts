@@ -24,7 +24,7 @@ function saveSettings() {
     var settings = {
         enable: document.getElementById('enable').checked,
         cron: getCronExpression(),
-        bakPath: document.getElementById('bakPath').value || '/etc/auto_undate_host/hosts.bak'
+        bakPath: document.getElementById('bakPath').value || '/etc/auto_update_host/hosts.bak'
     };
 
     var xhr = new XHR();

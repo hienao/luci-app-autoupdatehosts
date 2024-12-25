@@ -11,7 +11,7 @@ uci -q batch <<-EOF >/dev/null
     set autoupdatehosts.@config[-1].enabled='0'
     set autoupdatehosts.@config[-1].urls=''
     set autoupdatehosts.@config[-1].schedule=''
-    set autoupdatehosts.@config[-1].backup_path='/etc/AutoUpdateHosts/hosts.bak'
+    set autoupdatehosts.@config[-1].backup_path='/etc/auto_update_host/hosts.bak'
     commit autoupdatehosts
 EOF
 
