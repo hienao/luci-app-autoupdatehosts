@@ -149,7 +149,8 @@
             <input type="button" class="cbi-button cbi-button-apply" value="<%:View Backup Hosts File%>" onclick="viewBackupHosts()" />
             <input type="button" class="cbi-button cbi-button-apply" value="<%:Preview Hosts%>" onclick="previewHosts()" />
             <input type="button" class="cbi-button cbi-button-apply" value="<%:Backup Current Hosts%>" onclick="backupHosts()" />
-            <input type="button" class="cbi-button cbi-button-save" value="<%:Save%>" onclick="saveHosts()" />
+            <input type="button" class="cbi-button cbi-button-save" value="<%:Save Hosts%>" onclick="saveHosts()" />
+            <input type="button" class="cbi-button cbi-button-save" value="<%:Save Settings%>" onclick="saveSettings()" />
         </div>
     </div>
 </div>
@@ -267,14 +268,78 @@ function updateScheduleInputs() {
     }
 }
 
+function saveSettings() {
+    // 收集表单数据
+    var data = {
+        enable: document.getElementById('enable').checked ? 'true' : 'false',
+        schedule_type: document.getElementById('schedule_type').value,
+        schedule_hour: document.getElementById('schedule_hour').value,
+        schedule_minute: document.getElementById('schedule_minute').value,
+        subscription_urls: document.getElementById('subscription_urls').value,
+        bakPath: document.getElementById('bakPath').value
+    };
+    
+    // 根据调度类型添加额外数据
+    if (data.schedule_type === 'monthly') {
+        data.schedule_day = document.getElementById('schedule_day').value;
+    } else if (data.schedule_type === 'weekly') {
+        data.schedule_week = document.getElementById('schedule_week').value;
+    }
+    
+    // 发送保存请求
+    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_settings")%>', data,
+        function(x, result) {
+            if (result && result.code === 0) {
+                alert('<%:Settings saved successfully%>');
+            } else {
+                alert('<%:Failed to save settings%>');
+            }
+        }
+    );
+}
+
 window.addEventListener('load', function() {
     updateScheduleInputs();
     // 获取设置
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_settings")%>', null,
         function(x, data) {
             if (data) {
-                if (data.urls) {
-                    document.getElementById('subscription_urls').value = data.urls;
+                // 加载启用状态
+                document.getElementById('enable').checked = data.enable === "true";
+                
+                // 加载备份路径
+                if (data.bakPath) {
+                    document.getElementById('bakPath').value = data.bakPath;
+                }
+                
+                // 加载订阅URLs
+                if (data.urls && Array.isArray(data.urls)) {
+                    document.getElementById('subscription_urls').value = data.urls.join('\n');
+                }
+                
+                // 加载调度设置
+                if (data.cron) {
+                    var [minute, hour, day, month, week] = data.cron.split(' ');
+                    
+                    // 设置时间
+                    document.getElementById('schedule_hour').value = hour;
+                    document.getElementById('schedule_minute').value = minute;
+                    
+                    // 确定调度类型并设置相应的值
+                    if (day !== '*' && week === '*') {
+                        document.getElementById('schedule_type').value = 'monthly';
+                        document.getElementById('schedule_day').value = day;
+                    } else if (week !== '*' && day === '*') {
+                        document.getElementById('schedule_type').value = 'weekly';
+                        document.getElementById('schedule_week').value = week;
+                    } else if (day === '*' && week === '*') {
+                        document.getElementById('schedule_type').value = 'daily';
+                    } else {
+                        document.getElementById('schedule_type').value = 'none';
+                    }
+                    
+                    // 更新显示状态
+                    updateScheduleInputs();
                 }
             }
         }

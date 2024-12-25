@@ -28,8 +28,8 @@ msgstr "更新计划"
 msgid "Subscription URL"
 msgstr "订阅地址"
 
-msgid "Save"
-msgstr "保存设置"
+msgid "Save Hosts"
+msgstr "保存Hosts"
 
 msgid "Settings"
 msgstr "设置"
@@ -144,4 +144,13 @@ msgstr "获取hosts失败"
 
 msgid "Failed to get hosts: Network error"
 msgstr "获取hosts失败：网络错误"
+
+msgid "Settings saved successfully"
+msgstr "设置保存成功"
+
+msgid "Failed to save settings"
+msgstr "设置保存失败"
+
+msgid "Save Settings"
+msgstr "保存设置"
 

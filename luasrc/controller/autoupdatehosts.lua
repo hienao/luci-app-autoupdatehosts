@@ -85,38 +85,56 @@ end
 
 function save_settings()
     local fs = require "nixio.fs"
-    local settings = luci.http.formvalue()
-    local content = ""
+    local settings = {}
     
     write_log("开始保存设置...")
     
-    -- 确保目录存在
-    os.execute("mkdir -p /etc/auto_update_host")
+    -- 获取表单数据
+    settings.enable = luci.http.formvalue("enable") or "false"
+    settings.schedule_type = luci.http.formvalue("schedule_type") or "none"
+    settings.schedule_hour = luci.http.formvalue("schedule_hour") or "0"
+    settings.schedule_minute = luci.http.formvalue("schedule_minute") or "0"
+    settings.schedule_day = luci.http.formvalue("schedule_day")
+    settings.schedule_week = luci.http.formvalue("schedule_week")
+    settings.subscription_urls = luci.http.formvalue("subscription_urls")
+    settings.bakPath = luci.http.formvalue("bakPath") or "/etc/auto_update_host/hosts.bak"
     
-    -- 验证和处理设置值
-    settings.enable = settings.enable or "false"
-    settings.cron = (settings.cron and settings.cron ~= "") and settings.cron or ""
-    settings.bakPath = (settings.bakPath and settings.bakPath ~= "") 
-        and settings.bakPath 
-        or "/etc/auto_update_host/hosts.bak"
+    write_log(string.format("接收到的设置数据: enable=%s, type=%s, hour=%s, minute=%s, day=%s, week=%s", 
+        settings.enable, settings.schedule_type, settings.schedule_hour, settings.schedule_minute,
+        settings.schedule_day or "nil", settings.schedule_week or "nil"))
     
-    -- 处理 URLs
+    -- 构建cron表达式
+    local cron = ""
+    if settings.schedule_type ~= "none" then
+        local minute = settings.schedule_minute
+        local hour = settings.schedule_hour
+        local day = "*"
+        local month = "*"
+        local week = "*"
+        
+        if settings.schedule_type == "monthly" and settings.schedule_day then
+            day = settings.schedule_day
+        elseif settings.schedule_type == "weekly" and settings.schedule_week then
+            week = settings.schedule_week
+            day = "*"
+        end
+        
+        cron = string.format("%s %s %s %s %s", minute, hour, day, month, week)
+    end
+    settings.cron = cron
+    
+    -- 处理订阅URLs
     local urls = {}
-    if settings.urls then
-        -- 如果 urls 是 JSON 字符串，解析它
-        if settings.urls:sub(1,1) == "[" then
-            urls = luci.jsonc.parse(settings.urls) or {}
-        else
-            -- 如果是单个 URL，直接添加
-            urls = {settings.urls}
+    if settings.subscription_urls and settings.subscription_urls ~= "" then
+        for url in settings.subscription_urls:gmatch("[^\r\n]+") do
+            if url:match("^https?://") then
+                table.insert(urls, url)
+            end
         end
     end
     
-    write_log(string.format("处理设置数据: enable=%s, cron=%s, bakPath=%s, urls数量=%d", 
-        settings.enable, settings.cron, settings.bakPath, #urls))
-    
     -- 构建 YAML 内容
-    content = string.format("enable: %s\n", settings.enable)
+    local content = string.format("enable: %s\n", settings.enable)
     content = content .. string.format("cron: %s\n", settings.cron)
     content = content .. string.format("bakPath: %s\n", settings.bakPath)
     
@@ -131,6 +149,9 @@ function save_settings()
     end
     
     write_log(string.format("准备写入配置文件: %s", SETTINGS_FILE))
+    
+    -- 确保目录存在
+    os.execute("mkdir -p /etc/auto_update_host")
     
     -- 保存设置
     if fs.writefile(SETTINGS_FILE, content) then
@@ -160,7 +181,7 @@ function save_settings()
     else
         write_log("配置文件保存失败")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "设置保存失败"})
+        luci.http.write_json({code = 1, msg = "设置保存��败"})
     end
 end 
 
@@ -270,7 +291,7 @@ function save_hosts_etc()
         if fs.writefile(HOSTS_FILE, content) then
             -- 重启 dnsmasq
             os.execute("/etc/init.d/dnsmasq restart")
-            write_log("hosts文件保存成功，已重启dnsmasq服务")
+            write_log("hosts文件保存成功，��重启dnsmasq服务")
             luci.http.prepare_content("application/json")
             luci.http.write_json({code = 0, msg = "Hosts保存成功"})
         else
@@ -339,7 +360,7 @@ function backup_hosts()
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
-        write_log(string.format("创建备份目录：%s", backup_dir))
+        write_log(string.format("创��备份目录：%s", backup_dir))
     end
     
     -- 创建备份
