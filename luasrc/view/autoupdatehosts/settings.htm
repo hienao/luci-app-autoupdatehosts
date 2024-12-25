@@ -161,7 +161,8 @@ function viewCurrentHosts() {
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
             if (x.status == 200) {
-                document.getElementById('hosts_content').value = x.responseText;
+                x.responseType = 'text';
+                document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
             } else {
                 document.getElementById('hosts_content').value = '获取失败：' + x.status;
             }
@@ -176,7 +177,8 @@ function viewBackupHosts() {
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
         function(x, res) {
             if (x.status == 200) {
-                document.getElementById('hosts_content').value = x.responseText;
+                x.responseType = 'text';
+                document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
             } else {
                 document.getElementById('hosts_content').value = '获取失败：' + x.status;
             }
@@ -228,11 +230,14 @@ function saveHosts() {
     XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', 
         { content: content },
         function(x, result) {
-            if (result.code === 0) {
+            if (x.status == 200) {
                 ui.addNotification(null, E('p', _('Hosts saved successfully')));
             } else {
                 ui.addNotification(null, E('p', _('Failed to save hosts')));
             }
+        },
+        function() {
+            ui.addNotification(null, E('p', _('Failed to save hosts: Network error')));
         }
     );
 }

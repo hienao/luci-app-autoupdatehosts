@@ -27,7 +27,6 @@ include $(TOPDIR)/feeds/luci/luci.mk
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
-	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/autoupdatehosts
 	$(INSTALL_DIR) $(1)/www/luci-static/resources/view/autoupdatehosts
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n

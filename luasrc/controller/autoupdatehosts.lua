@@ -149,7 +149,6 @@ function save_hosts_etc()
             -- 重启 dnsmasq
             os.execute("/etc/init.d/dnsmasq restart")
             write_log("hosts文件保存成功，已重启dnsmasq服务")
-            
             luci.http.prepare_content("application/json")
             luci.http.write_json({code = 0, msg = "Hosts saved"})
         else
@@ -174,6 +173,7 @@ function fetch_backup_hosts()
     
     if not fs.access(backup_path) then
         write_log("备份文件不存在，返回空内容")
+        luci.http.header('Content-Type', 'text/plain; charset=utf-8')
         luci.http.prepare_content("text/plain")
         luci.http.write("")
         return
@@ -181,7 +181,7 @@ function fetch_backup_hosts()
     
     local hosts_content = fs.readfile(backup_path) or ""
     write_log(string.format("读取备份文件成功，大小：%d 字节", #hosts_content))
-    
+    luci.http.header('Content-Type', 'text/plain; charset=utf-8')
     luci.http.prepare_content("text/plain")
     luci.http.write(hosts_content)
 end
@@ -212,7 +212,7 @@ function backup_hosts()
     
     -- 创建备份
     if fs.writefile(backup_path, current_hosts) then
-        write_log(string.format("备份成功，大小：%d ���节", #current_hosts))
+        write_log(string.format("备份成功，大小：%d 字节", #current_hosts))
         luci.http.prepare_content("application/json")
         luci.http.write_json({code = 0, msg = "Backup created"})
     else
@@ -323,9 +323,9 @@ function preview_hosts()
             -- 确保每个URL的内容前后都有换行
             content = content:gsub("^%s*(.-)%s*$", "%1")
             new_content = new_content .. content .. "\n"
-            write_log(string.format("成功获取内容，大小：%d 字节", #content))
+            write_log(string.format("成功获取内容，大��：%d 字节", #content))
         else
-            write_log(string.format("获取���容失败：%s", url))
+            write_log(string.format("获取内容失败：%s", url))
         end
     end
     
