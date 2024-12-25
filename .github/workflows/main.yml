@@ -72,15 +72,7 @@ jobs:
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
           echo "CONFIG_ALL_NONSHARED=y" >> .config
-          echo "CONFIG_LUCI_APP_AUTOUPDATEHOSTS_INCLUDE_I18N=y" >> .config
-          
-          # 显示当前配置
-          echo "Current package configuration:"
-          cat .config | grep -i luci
-          
-          # 检查源文件
-          echo "Checking source files:"
-          ls -la $GITHUB_WORKSPACE/po/zh-cn/
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           
           # 构建包
           make package/luci-app-autoupdatehosts/{clean,compile} V=sc
