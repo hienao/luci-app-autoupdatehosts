@@ -5,24 +5,21 @@
 
 include $(TOPDIR)/rules.mk
 
-NAME:=autoupdatehosts
-PKG_NAME:=luci-app-$(NAME)
-LUCI_TITLE:=LuCI support for autoupdatehosts
-LUCI_DESCRIPTION:=Auto update hosts file from URLs
-
-LUCI_PKGARCH:=all
+PKG_NAME:=luci-app-autoupdatehosts
 PKG_VERSION:=1
 PKG_RELEASE:=4
 
+LUCI_TITLE:=LuCI support for autoupdatehosts
+LUCI_DESCRIPTION:=Auto update hosts file from URLs
 LUCI_DEPENDS:=+luci-base
+
+# 修改语言包配置
 LUCI_PKGARCH:=all
+LUCI_LANG_zh-cn:=1
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/autoupdatehosts
 endef
-
-# 添加语言包支持
-LUCI_LANG:=zh-cn
 
 include $(TOPDIR)/feeds/luci/luci.mk
 

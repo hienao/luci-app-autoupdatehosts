@@ -71,6 +71,7 @@ jobs:
           # 添加必要的配置以支持中文语言包
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
+          echo "CONFIG_ALL_NONSHARED=y" >> .config
           
           # 显示当前配置
           echo "Current package configuration:"
@@ -81,7 +82,7 @@ jobs:
           ls -la $GITHUB_WORKSPACE/po/zh-cn/
           
           # 构建包
-          make package/luci-app-autoupdatehosts/compile V=sc
+          make package/luci-app-autoupdatehosts/{clean,compile} V=sc
           
           # 检查生成的文件
           echo "Generated files:"
