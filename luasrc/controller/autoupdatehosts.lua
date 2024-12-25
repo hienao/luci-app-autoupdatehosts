@@ -88,36 +88,79 @@ function save_settings()
     local settings = luci.http.formvalue()
     local content = ""
     
+    write_log("开始保存设置...")
+    
     -- 确保目录存在
     os.execute("mkdir -p /etc/auto_undate_host")
     
+    -- 验证和处理设置值
+    settings.enable = settings.enable or "false"
+    settings.cron = (settings.cron and settings.cron ~= "") and settings.cron or ""
+    settings.bakPath = (settings.bakPath and settings.bakPath ~= "") 
+        and settings.bakPath 
+        or "/etc/auto_undate_host/hosts.bak"
+    
+    -- 处理 URLs
+    local urls = {}
+    if settings.urls then
+        -- 如果 urls 是 JSON 字符串，解析它
+        if settings.urls:sub(1,1) == "[" then
+            urls = luci.jsonc.parse(settings.urls) or {}
+        else
+            -- 如果是单个 URL，直接添加
+            urls = {settings.urls}
+        end
+    end
+    
+    write_log(string.format("处理设置数据: enable=%s, cron=%s, bakPath=%s, urls数量=%d", 
+        settings.enable, settings.cron, settings.bakPath, #urls))
+    
     -- 构建 YAML 内容
-    content = string.format("enable: %s\n", settings.enable or "false")
-    content = content .. string.format("cron: %s\n", settings.cron or "")
-    content = content .. string.format("bakPath: %s\n", settings.bakPath or "/etc/auto_undate_host/hosts.bak")
-    content = content .. string.format("urls: %s\n", settings.urls or "")
+    content = string.format("enable: %s\n", settings.enable)
+    content = content .. string.format("cron: %s\n", settings.cron)
+    content = content .. string.format("bakPath: %s\n", settings.bakPath)
+    
+    -- 添加 URLs
+    if #urls > 0 then
+        content = content .. "urls:\n"
+        for _, url in ipairs(urls) do
+            content = content .. string.format("  - %s\n", url)
+        end
+    else
+        content = content .. "urls: []\n"
+    end
+    
+    write_log(string.format("准备写入配置文件: %s", SETTINGS_FILE))
     
     -- 保存设置
     if fs.writefile(SETTINGS_FILE, content) then
-        -- 如果启用了定时任务，更新 crontab
+        write_log("配置文件保存成功")
+        
+        -- 处理定时任务
         if settings.enable == "true" and settings.cron and settings.cron ~= "" then
+            write_log("更新定时任务...")
             -- 移除旧的定时任务
-            os.execute("sed -i '/auto_undate_host/d' /etc/crontabs/root")
+            os.execute("sed -i '/autoupdatehosts.sh/d' /etc/crontabs/root")
             -- 添加新的定时任务
-            os.execute(string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", settings.cron))
-            -- 重启 cron 服务
-            os.execute("/etc/init.d/cron restart")
+            local cron_cmd = string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", settings.cron)
+            if os.execute(cron_cmd) == 0 then
+                os.execute("/etc/init.d/cron restart")
+                write_log("定时任务更新成功")
+            else
+                write_log("定时任务更新失败")
+            end
         else
-            -- 如果禁用了定时任务，移除相关任务
-            os.execute("sed -i '/auto_undate_host/d' /etc/crontabs/root")
+            write_log("移除定时任务...")
+            os.execute("sed -i '/autoupdatehosts.sh/d' /etc/crontabs/root")
             os.execute("/etc/init.d/cron restart")
         end
         
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 0, msg = "Settings saved"})
+        luci.http.write_json({code = 0, msg = "设置保存成功"})
     else
+        write_log("配置文件保存失败")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "Failed to save settings"})
+        luci.http.write_json({code = 1, msg = "设置保存失败"})
     end
 end 
 
