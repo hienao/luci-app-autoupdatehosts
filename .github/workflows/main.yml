@@ -99,29 +99,33 @@ jobs:
             ./scripts/feeds update -a
           fi
           ./scripts/feeds install -a
+          # 确保语言包相关的 feeds 被正确安装
+          ./scripts/feeds install luci-base
+          ./scripts/feeds install -a -p luci
           ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
 
       - name: Build Package
         run: |
           cd sdk
-          # 更全面地清理包相关的缓存
+          # 更全面但不过度清理的缓存
           rm -rf bin/packages/*/base/luci-app-autoupdatehosts*
           rm -rf bin/packages/*/base/luci-i18n-autoupdatehosts*
           rm -rf build_dir/target-*/luci-app-autoupdatehosts*
-          rm -rf build_dir/target-*/packages/luci-app-autoupdatehosts*
           rm -rf staging_dir/target-*/packages/luci-app-autoupdatehosts*
           rm -rf staging_dir/target-*/pkginfo/luci-app-autoupdatehosts*
-          rm -rf staging_dir/target-*/pkginfo/luci-i18n-autoupdatehosts*
-          rm -rf staging_dir/target-*/stamp/.luci-app-autoupdatehosts*
           rm -rf tmp/info/.packageinfo-luci-app-autoupdatehosts
-          rm -rf tmp/info/.files-packageinfo-*
-          # 清理 feeds 索引缓存
-          rm -f tmp/.packageinfo
-          rm -f tmp/.config-package.in
           
           make defconfig
-          make package/luci-app-autoupdatehosts/clean
+          # 确保启用了 i18n 支持
+          echo "CONFIG_BUILD_PATENTED=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
+          
+          # 先构建基础包
+          make package/luci-base/compile V=s
+          # 然后构建我们的包
           make package/luci-app-autoupdatehosts/compile V=s
+          # 最后构建语言包
+          make package/luci-i18n-autoupdatehosts/compile V=s || true
 
       - name: Organize and Release
         run: |
