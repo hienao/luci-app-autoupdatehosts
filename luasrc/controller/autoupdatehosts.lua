@@ -138,7 +138,7 @@ function save_settings()
         
         -- 处理定时任务
         if settings.enable == "true" and settings.cron and settings.cron ~= "" then
-            write_log("��新定时任务...")
+            write_log("更新定时任务...")
             -- 移除旧的定时任务
             os.execute("sed -i '/autoupdatehosts.sh/d' /etc/crontabs/root")
             -- 添加新的定时任务
@@ -180,17 +180,20 @@ local function validate_hosts_content(content)
         return false, "hosts内容不能为空"
     end
     
-    -- 检查基本格式
+    local line_number = 0
     local valid_lines = 0
     local invalid_lines = {}
-    local line_number = 0
     
     for line in content:gmatch("[^\r\n]+") do
         line_number = line_number + 1
-        -- 忽略注释和空行
-        if not line:match("^%s*#") and not line:match("^%s*$") then
+        
+        -- 去除行首尾的空白字符
+        line = line:match("^%s*(.-)%s*$")
+        
+        -- 跳过空行和注释行
+        if line ~= "" and not line:match("^#") then
             -- 检查是否符合hosts文件格式: IP地址(IPv4或IPv6) 域名
-            local ip, domain = line:match("^%s*([%x%d:%.]+)%s+([%S]+)%s*$")
+            local ip, domain = line:match("^([%x%d:%.]+)%s+([%S]+)")
             if not ip or not domain then
                 table.insert(invalid_lines, line_number)
             else
@@ -199,15 +202,11 @@ local function validate_hosts_content(content)
                 if ip:match("^%d+%.%d+%.%d+%.%d+$") then
                     local parts = {ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
                     valid_ip = true
-                    if #parts ~= 4 then
-                        valid_ip = false
-                    else
-                        for _, part in ipairs(parts) do
-                            local num = tonumber(part)
-                            if not num or num < 0 or num > 255 then
-                                valid_ip = false
-                                break
-                            end
+                    for _, part in ipairs(parts) do
+                        local num = tonumber(part)
+                        if not num or num < 0 or num > 255 then
+                            valid_ip = false
+                            break
                         end
                     end
                 -- 验证IPv6地址格式
@@ -225,12 +224,23 @@ local function validate_hosts_content(content)
         end
     end
     
-    if #invalid_lines > 0 then
-        return false, string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
+    -- 如果没有找到任何有效行，但文件不为空且只包含空行或注释，也认为是有效的
+    if valid_lines == 0 and line_number > 0 then
+        local only_empty_or_comments = true
+        for line in content:gmatch("[^\r\n]+") do
+            line = line:match("^%s*(.-)%s*$")
+            if line ~= "" and not line:match("^#") then
+                only_empty_or_comments = false
+                break
+            end
+        end
+        if only_empty_or_comments then
+            return true, "hosts内容验证通过（仅包含空行和注释）"
+        end
     end
     
-    if valid_lines == 0 then
-        return false, "未找到有效的hosts条目"
+    if #invalid_lines > 0 then
+        return false, string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
     end
     
     return true, "hosts内容验证通过"
@@ -325,7 +335,7 @@ function backup_hosts()
         return
     end
     
-    -- 确保备份��录存在
+    -- 确保备份目录存在
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
