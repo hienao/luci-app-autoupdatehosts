@@ -6,74 +6,39 @@ on:
       - main
       - pre
 
-# 添加权限配置
 permissions:
   contents: write
-  discussions: write
 
 jobs:
   build_and_release:
     name: Build and Release
     runs-on: ubuntu-22.04
     steps:
-      - name: Check Environment
-        id: check_env
-        run: |
-          if [ "${{ secrets.IS_GITHUB_RUN }}" != "true" ]; then
-            echo "非github环境，终止执行"
-            exit 1
-          fi
-
       - uses: actions/checkout@v3
 
       - name: Set Release Info
         id: release_info
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/pre" ]]; then
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            echo "RELEASE_VERSION=pre-$TIMESTAMP" >> $GITHUB_ENV
+            echo "RELEASE_VERSION=pre-$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-            echo "设置为预发布版本"
           else
-            # 读取 version.txt 文件中的版本号
-            if [ -f "version.txt" ]; then
-              VERSION=$(cat version.txt | tr -d '[:space:]')
-              if [ -n "$VERSION" ]; then
-                echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
-              else
-                echo "version.txt 文件为空，使用默认版本号 v1.0.0"
-                echo "RELEASE_VERSION=v1.0.0" >> $GITHUB_ENV
-              fi
-            else
-              echo "未找到 version.txt 文件，使用默认版本号 v1.0.0"
-              echo "RELEASE_VERSION=v1.0.0" >> $GITHUB_ENV
-            fi
+            VERSION=$(cat version.txt 2>/dev/null | tr -d '[:space:]' || echo "v1.0.0")
+            echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-            echo "设置为正式版本: $VERSION"
           fi
 
-      # 使用缓存加速依赖安装
-      - name: Cache apt packages
-        uses: actions/cache@v3
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/package-list') }}
-
-      - name: Install Build Dependencies
+      - name: Install Essential Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential \
-            libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext \
-            libssl-dev xsltproc rsync unzip \
-            dos2unix
+          sudo apt-get install -y build-essential gawk gettext
 
-      # 只保留 SDK 下载缓存
+      # 缓存SDK下载
       - name: Cache SDK
         id: cache-sdk
         uses: actions/cache@v3
         with:
-          path: |
-            openwrt-sdk-*.tar.xz
+          path: openwrt-sdk-*.tar.xz
           key: ${{ runner.os }}-openwrt-sdk-22.03.5-tarball
 
       - name: Setup OpenWrt SDK
@@ -81,60 +46,27 @@ jobs:
           if [ ! -f openwrt-sdk-*.tar.xz ]; then
             wget -q https://downloads.openwrt.org/releases/22.03.5/targets/x86/64/openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
           fi
-          # 每次都重新解压 SDK
           rm -rf sdk/
           tar xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-22.03.5-x86-64_gcc-11.2.0_musl.Linux-x86_64 sdk
 
-      # 缓存 feeds
-      - name: Cache feeds
-        id: cache-feeds
-        uses: actions/cache@v3
-        with:
-          path: sdk/feeds
-          key: ${{ runner.os }}-feeds-${{ hashFiles('sdk/feeds.conf.default') }}
-
       - name: Setup SDK Environment
         run: |
           cd sdk
-          # 每次都更新 feeds
-          ./scripts/feeds clean
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          # 确保语言包相关的 feeds 被正确安装
-          ./scripts/feeds install luci-base
-          ./scripts/feeds install -a -p luci
           ln -sf $GITHUB_WORKSPACE package/luci-app-autoupdatehosts
 
       - name: Build Package
         run: |
           cd sdk
-          # 清理所有构建相关的目录，但保留工具链
           rm -rf bin/packages/*/base/
           rm -rf build_dir/target-*/luci-*
           rm -rf staging_dir/target-*/packages/luci-*
           rm -rf tmp/info/.packageinfo-*
           
           make defconfig
-          # 确保启用了 i18n 支持
-          echo "CONFIG_BUILD_PATENTED=y" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
-          
-          # 使用单线程构建工具链并增加详细输出
-          make toolchain/install -j1 V=sc
-          # 再构建包
-          make package/luci-base/compile V=s
           make package/luci-app-autoupdatehosts/compile V=s
-          make package/luci-i18n-autoupdatehosts/compile V=s || true
-
-      - name: Organize and Release
-        run: |
-          mkdir -p release
-          find sdk/bin/packages/*/base/ -name "luci-app-autoupdatehosts*.ipk" -exec cp {} release/ \;
-          find sdk/bin/packages/*/base/ -name "luci-i18n-autoupdatehosts*.ipk" -exec cp {} release/ \;
-          echo "### LuCI App AutoUpdateHosts Release" > release.txt
-          echo "包含以下文件：" >> release.txt
-          ls -1 release/ >> release.txt
 
       # 添加清理步骤，在创建新发布之前执行
       - name: Delete Old Prereleases
@@ -154,37 +86,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release/*
-          body_path: release.txt
+          files: sdk/bin/packages/*/base/luci-*autoupdatehosts*.ipk
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
-          draft: false
           tag_name: ${{ env.RELEASE_VERSION }}
           name: ${{ env.RELEASE_VERSION }}
-          generate_release_notes: true
-          fail_on_unmatched_files: false
           token: ${{ secrets.REPO_TOKEN }}
-
-      - name: Generate translations
-        run: |
-          # 创建必要的目录
-          mkdir -p po/zh-cn
-          mkdir -p po/templates
-          mkdir -p scripts
-          
-          # 获取 LuCI 的 i18n 工具
-          wget https://raw.githubusercontent.com/openwrt/luci/master/build/i18n-scan.pl -O scripts/i18n-scan.pl
-          wget https://raw.githubusercontent.com/openwrt/luci/master/build/i18n-update.pl -O scripts/i18n-update.pl
-          
-          chmod +x ./scripts/i18n-scan.pl
-          chmod +x ./scripts/i18n-update.pl
-          
-          # 确保 po 文件使用正确的编码和换行符
-          dos2unix po/zh-cn/autoupdatehosts.po
-          
-          # 生成翻译模板
-          ./scripts/i18n-scan.pl . > po/templates/autoupdatehosts.pot || true
-          cat po/templates/autoupdatehosts.pot
-          ./scripts/i18n-update.pl po/zh-cn/autoupdatehosts.po po/templates/autoupdatehosts.pot
-          
-          # 检查更新后的翻译文件
-          cat po/zh-cn/autoupdatehosts.po
