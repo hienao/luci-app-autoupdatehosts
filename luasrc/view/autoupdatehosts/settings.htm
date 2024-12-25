@@ -158,10 +158,11 @@
 var XHR = new XHR();
 
 function viewCurrentHosts() {
-    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+    var xhr = new XHR();
+    xhr.responseType = 'text';
+    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
             if (x.status == 200) {
-                x.responseType = 'text';
                 document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
             } else {
                 document.getElementById('hosts_content').value = '获取失败：' + x.status;
@@ -174,10 +175,11 @@ function viewCurrentHosts() {
 }
 
 function viewBackupHosts() {
-    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
+    var xhr = new XHR();
+    xhr.responseType = 'text';
+    xhr.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_backup")%>', null,
         function(x, res) {
             if (x.status == 200) {
-                x.responseType = 'text';
                 document.getElementById('hosts_content').value = decodeURIComponent(escape(x.responseText));
             } else {
                 document.getElementById('hosts_content').value = '获取失败：' + x.status;
