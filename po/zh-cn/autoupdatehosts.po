@@ -75,3 +75,42 @@ msgstr "开始刷新"
 
 msgid "Stop Refresh"
 msgstr "停止刷新"
+
+msgid "Disabled"
+msgstr "禁用"
+
+msgid "Daily"
+msgstr "每天"
+
+msgid "Weekly"
+msgstr "每周"
+
+msgid "Monthly"
+msgstr "每月"
+
+msgid "Day"
+msgstr "日期"
+
+msgid "Week"
+msgstr "星期"
+
+msgid "Monday"
+msgstr "星期一"
+
+msgid "Tuesday"
+msgstr "星期二"
+
+msgid "Wednesday"
+msgstr "星期三"
+
+msgid "Thursday"
+msgstr "星期四"
+
+msgid "Friday"
+msgstr "星期五"
+
+msgid "Saturday"
+msgstr "星期六"
+
+msgid "Sunday"
+msgstr "星期日"

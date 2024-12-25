@@ -73,17 +73,23 @@
         <div class="settings-row">
             <label class="settings-label"><%:Update Schedule%></label>
             <div class="settings-input schedule-container">
-                <select id="schedule_type" onchange="updateScheduleInputs()">
+                <select id="schedule_type" style="width:30px" onchange="updateScheduleInputs()">
                     <option value="none"><%:Disabled%></option>
                     <option value="daily"><%:Daily%></option>
                     <option value="weekly"><%:Weekly%></option>
                     <option value="monthly"><%:Monthly%></option>
                 </select>
                 <span id="day_container" style="display:none">
-                    <%:Day%>: <input type="number" id="schedule_day" min="1" max="31" style="width:60px" />
+                    <%:Day%>: 
+                    <select id="schedule_day" style="width:60px">
+                        <% for i = 1, 31 do %>
+                            <option value="<%=i%>"><%=i%></option>
+                        <% end %>
+                    </select>
                 </span>
                 <span id="week_container" style="display:none">
-                    <%:Week%>: <select id="schedule_week">
+                    <%:Week%>: 
+                    <select id="schedule_week" style="width:100px">
                         <option value="1"><%:Monday%></option>
                         <option value="2"><%:Tuesday%></option>
                         <option value="3"><%:Wednesday%></option>
@@ -93,8 +99,6 @@
                         <option value="0"><%:Sunday%></option>
                     </select>
                 </span>
-                <%:Time%>: <input type="number" id="schedule_hour" min="0" max="23" style="width:60px" />
-                : <input type="number" id="schedule_minute" min="0" max="59" style="width:60px" />
             </div>
         </div>
 
