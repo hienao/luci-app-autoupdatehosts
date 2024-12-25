@@ -109,18 +109,20 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 清理所有构建相关的目录
-          rm -rf bin/
-          rm -rf build_dir/
-          rm -rf staging_dir/
-          rm -rf tmp/
+          # 清理所有构建相关的目录，但保留工具链
+          rm -rf bin/packages/*/base/
+          rm -rf build_dir/target-*/luci-*
+          rm -rf staging_dir/target-*/packages/luci-*
+          rm -rf tmp/info/.packageinfo-*
           
           make defconfig
           # 确保启用了 i18n 支持
           echo "CONFIG_BUILD_PATENTED=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           
-          # 构建过程
+          # 先构建工具链
+          make toolchain/install -j$(nproc)
+          # 再构建包
           make package/luci-base/compile V=s
           make package/luci-app-autoupdatehosts/compile V=s
           make package/luci-i18n-autoupdatehosts/compile V=s || true

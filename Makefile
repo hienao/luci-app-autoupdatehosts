@@ -18,7 +18,7 @@ LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
 
 define Package/$(PKG_NAME)/conffiles
-/etc/AutoUpdateHosts.yaml
+/etc/config/autoupdatehosts
 endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
