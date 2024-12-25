@@ -131,13 +131,77 @@ function get_current_hosts()
     luci.http.write(hosts_content)
 end
 
--- 保存hosts文件内容
+-- 添加hosts文件内容验证函数
+local function validate_hosts_content(content)
+    if not content or #content == 0 then
+        return false, "hosts内容不能为空"
+    end
+    
+    -- 检查基本格式
+    local valid_lines = 0
+    local invalid_lines = {}
+    local line_number = 0
+    
+    for line in content:gmatch("[^\r\n]+") do
+        line_number = line_number + 1
+        -- 忽略注释和空行
+        if not line:match("^%s*#") and not line:match("^%s*$") then
+            -- 检查是否符合hosts文件格式: IP地址 域名
+            local ip, domain = line:match("^%s*([%d%.]+)%s+([%S]+)%s*$")
+            if not ip or not domain then
+                table.insert(invalid_lines, line_number)
+            else
+                -- 验证IP地址格式
+                local parts = {ip:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+                local valid_ip = true
+                if #parts ~= 4 then
+                    valid_ip = false
+                else
+                    for _, part in ipairs(parts) do
+                        local num = tonumber(part)
+                        if not num or num < 0 or num > 255 then
+                            valid_ip = false
+                            break
+                        end
+                    end
+                end
+                if not valid_ip then
+                    table.insert(invalid_lines, line_number)
+                else
+                    valid_lines = valid_lines + 1
+                end
+            end
+        end
+    end
+    
+    if #invalid_lines > 0 then
+        return false, string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
+    end
+    
+    if valid_lines == 0 then
+        return false, "未找到有效的hosts条目"
+    end
+    
+    return true, "hosts内容验证通过"
+end
+
+-- 修改保存hosts文件的函数
 function save_hosts_etc()
     local fs = require "nixio.fs"
     local content = luci.http.formvalue("content")
     
     if content then
         write_log(string.format("准备保存hosts文件，内容大小：%d 字节", #content))
+        
+        -- 验证hosts内容
+        local is_valid, msg = validate_hosts_content(content)
+        if not is_valid then
+            write_log("hosts文件验证失败: " .. msg)
+            luci.http.prepare_content("application/json")
+            luci.http.write_json({code = 1, msg = msg})
+            return
+        end
+        
         -- 确保内容有正确的换行
         content = content:gsub("\r\n", "\n"):gsub("\n\n+", "\n\n")
         
@@ -147,18 +211,18 @@ function save_hosts_etc()
             os.execute("/etc/init.d/dnsmasq restart")
             write_log("hosts文件保存成功，已重启dnsmasq服务")
             luci.http.prepare_content("application/json")
-            luci.http.write_json({code = 0, msg = "Hosts saved"})
+            luci.http.write_json({code = 0, msg = "Hosts保存成功"})
         else
             write_log("hosts文件保存失败")
             luci.http.prepare_content("application/json")
-            luci.http.write_json({code = 1, msg = "Failed to save hosts"})
+            luci.http.write_json({code = 1, msg = "保存hosts文件失败"})
         end
     else
         write_log("保存hosts文件失败：未提供内容")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "No content provided"})
+        luci.http.write_json({code = 1, msg = "未提供hosts内容"})
     end
-end 
+end
 
 function fetch_backup_hosts()
     local fs = require "nixio.fs"
@@ -183,6 +247,7 @@ function fetch_backup_hosts()
     luci.http.write(hosts_content)
 end
 
+-- 修改备份hosts文件的函数
 function backup_hosts()
     local fs = require "nixio.fs"
     local settings = load_settings()
@@ -196,7 +261,16 @@ function backup_hosts()
     if not current_hosts then
         write_log("备份失败：无法读取当前hosts文件")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "Failed to read hosts file"})
+        luci.http.write_json({code = 1, msg = "无法读取hosts文件"})
+        return
+    end
+    
+    -- 验证hosts内容
+    local is_valid, msg = validate_hosts_content(current_hosts)
+    if not is_valid then
+        write_log("hosts文件验证失败: " .. msg)
+        luci.http.prepare_content("application/json")
+        luci.http.write_json({code = 1, msg = msg})
         return
     end
     
@@ -211,11 +285,11 @@ function backup_hosts()
     if fs.writefile(backup_path, current_hosts) then
         write_log(string.format("备份成功，大小：%d 字节", #current_hosts))
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 0, msg = "Backup created"})
+        luci.http.write_json({code = 0, msg = "备份创建成功"})
     else
         write_log("备份失败：无法写入备份文件")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "Failed to create backup"})
+        luci.http.write_json({code = 1, msg = "创建备份失败"})
     end
 end 
 
@@ -320,7 +394,7 @@ function preview_hosts()
             -- 确保每个URL的内容前后都有换行
             content = content:gsub("^%s*(.-)%s*$", "%1")
             new_content = new_content .. content .. "\n"
-            write_log(string.format("成功获取内容，大��：%d 字节", #content))
+            write_log(string.format("成功获取内容，大小：%d 字节", #content))
         else
             write_log(string.format("获取内容失败：%s", url))
         end
