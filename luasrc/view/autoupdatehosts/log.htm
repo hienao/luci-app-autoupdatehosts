@@ -1,21 +1,20 @@
 <%+header%>
 
 <div class="cbi-map">
-    <h2><%:Auto Update Hosts Log%></h2>
-    
     <div class="cbi-section">
         <div class="cbi-section-node">
+            <div class="cbi-value">
+                <div class="cbi-value-field">
+                    <textarea id="log_content" class="log-textarea" readonly="readonly"></textarea>
+                </div>
+            </div>
             <div class="cbi-value">
                 <div class="cbi-value-field">
                     <input type="button" id="log_control" class="cbi-button cbi-button-apply" value="<%:Start Refresh%>" onclick="toggleRefresh()" />
                     <input type="button" class="btn cbi-button cbi-button-remove" value="<%:Clear Log%>" onclick="clearLog()" />
                 </div>
             </div>
-            <div class="cbi-value">
-                <div class="cbi-value-field">
-                    <textarea id="log_content" class="log-textarea" readonly="readonly"></textarea>
-                </div>
-            </div>
+           
         </div>
     </div>
 </div>
@@ -28,6 +27,15 @@
     font-family: monospace;
     box-sizing: border-box;
     margin: 10px 0;
+}
+
+.cbi-value-field {
+    width: 100%;
+}
+
+.cbi-value {
+    display: flex;
+    width: 100%;
 }
 </style>
 
