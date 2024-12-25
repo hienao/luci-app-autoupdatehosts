@@ -69,9 +69,7 @@ jobs:
           
           make defconfig
           # 添加必要的配置以支持中文语言包
-          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-autoupdatehosts-zh-cn=y" >> .config
-          echo "CONFIG_ALL_NONSHARED=y" >> .config
           echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           
           # 构建包
