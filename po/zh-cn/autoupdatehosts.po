@@ -16,17 +16,8 @@ msgstr "启用"
 msgid "Update Schedule"
 msgstr "更新计划"
 
-msgid "Leave empty to disable scheduled task"
-msgstr "留空则不执行定时任务，仅立即执行一次"
-
-msgid "Cron expression format (e.g., \"0 2 * * *\" for 2 AM daily)"
-msgstr "Cron表达式格式 (例如: \"0 2 * * *\" 表示每天凌晨2点)"
-
-msgid "Hosts URLs"
-msgstr "Hosts订阅地址"
-
-msgid "Enter URLs (one per line) for hosts files"
-msgstr "输入hosts文件的订阅地址(每行一个)"
+msgid "Subscription URLs"
+msgstr "订阅地址"
 
 msgid "View Current Hosts"
 msgstr "查看当前Hosts"
@@ -114,3 +105,6 @@ msgstr "星期六"
 
 msgid "Sunday"
 msgstr "星期日"
+
+
+
