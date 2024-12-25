@@ -121,5 +121,20 @@ msgstr "预览Hosts"
 msgid "Backup Current Hosts"
 msgstr "备份当前Hosts"
 
+msgid "Backup created successfully"
+msgstr "备份创建成功"
+
+msgid "Failed to create backup"
+msgstr "备份创建失败"
+
+msgid "Hosts saved successfully"
+msgstr "保存成功"
+
+msgid "Failed to save hosts"
+msgstr "保存失败"
+
+msgid "Failed to save hosts: Network error"
+msgstr "保存失败：网络错误"
+
 
 

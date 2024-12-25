@@ -215,9 +215,9 @@ function backupHosts() {
     XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null,
         function(x, result) {
             if (result.code === 0) {
-                alert('备份创建成功');
+                alert('<%:Backup created successfully%>');
             } else {
-                alert('备份创建失败');
+                alert('<%:Failed to create backup%>');
             }
         }
     );
@@ -229,13 +229,13 @@ function saveHosts() {
         { content: content },
         function(x, result) {
             if (x.status == 200) {
-                alert('保存成功');
+                alert('<%:Hosts saved successfully%>');
             } else {
-                alert('保存失败');
+                alert('<%:Failed to save hosts%>');
             }
         },
         function() {
-            alert('保存失败：网络错误');
+            alert('<%:Failed to save hosts: Network error%>');
         }
     );
 }
