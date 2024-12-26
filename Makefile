@@ -6,21 +6,26 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-autoupdatehosts
-PKG_VERSION:=1
-PKG_RELEASE:=4
+PKG_VERSION:=1.0.0
+PKG_RELEASE:=1
 
-LUCI_TITLE:=LuCI support for autoupdatehosts
-LUCI_DESCRIPTION:=Auto update hosts file from URLs
-LUCI_DEPENDS:=+luci-base
+PKG_LICENSE:=MIT
+PKG_MAINTAINER:=shiwentao666@gmail.com
+
+LUCI_TITLE:=LuCI support for Auto Update Hosts
 LUCI_PKGARCH:=all
+LUCI_DEPENDS:=+wget
 
-define Package/$(PKG_NAME)/conffiles
-/etc/config/autoupdatehosts
-endef
+# 添加语言包依赖
+PKG_DEPENDS:=+luci-i18n-autoupdatehosts-zh-cn
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
+
+define Package/$(PKG_NAME)/conffiles
+/etc/config/autoupdatehosts
+endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
@@ -51,6 +56,13 @@ endef
 define Package/luci-i18n-autoupdatehosts-zh-cn/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	po2lmo ./po/zh-cn/autoupdatehosts.po $(1)/usr/lib/lua/luci/i18n/autoupdatehosts.zh-cn.lmo
+endef
+
+# 语言包定义
+define Package/$(PKG_NAME)-i18n-zh-cn
+  $(call Package/$(PKG_NAME)/Default)
+  TITLE:=$(PKG_NAME) - Chinese translation
+  DEPENDS:=$(PKG_NAME)
 endef
 
 $(eval $(call BuildPackage,luci-i18n-autoupdatehosts-zh-cn))
