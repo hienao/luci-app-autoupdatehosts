@@ -1,40 +1,101 @@
 #!/bin/sh
 
-# 记录开始时间
-start_time=$(date +%s)
+# 定义日志文件路径
+LOG_FILE="/tmp/auto_update_host/log.txt"
 
-# 检查是否启用
-enabled=$(grep "^enabled:" /etc/AutoUpdateHosts.yaml | cut -d' ' -f2- | tr -d '"')
-if [ "$enabled" != "1" ]; then
-    logger -t "autoupdatehosts" "服务未启用，跳过更新"
-    exit 0
+# 写入日志函数
+write_log() {
+    local msg="$1"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    
+    # 确保日志目录存在
+    mkdir -p /tmp/auto_update_host
+    
+    # 写入日志
+    echo "[$timestamp] $msg" >> "$LOG_FILE"
+}
+
+# 加载配置文件
+SETTINGS_FILE="/etc/auto_update_host/settings.yaml"
+HOSTS_FILE="/etc/hosts"
+
+write_log "开始自动更新hosts..."
+
+# 检查配置文件是否存在
+if [ ! -f "$SETTINGS_FILE" ]; then
+    write_log "配置文件不存在: $SETTINGS_FILE"
+    exit 1
 fi
 
-# 检查网络连接
-for i in 1 2 3; do
-    if ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
-        break
+# 读取配置文件中的URLs
+urls=$(awk '/^[[:space:]]*-/ {print $2}' "$SETTINGS_FILE")
+if [ -z "$urls" ]; then
+    write_log "未找到有效的订阅URL"
+    exit 1
+fi
+
+# 读取备份路径
+bakPath=$(awk -F': ' '/^bakPath:/ {print $2}' "$SETTINGS_FILE")
+if [ -z "$bakPath" ]; then
+    bakPath="/etc/auto_update_host/hosts.bak"
+fi
+
+# 备份当前hosts文件
+if [ -f "$HOSTS_FILE" ]; then
+    cp "$HOSTS_FILE" "$bakPath"
+    write_log "已备份当前hosts文件到: $bakPath"
+fi
+
+# 获取当前hosts文件的非订阅内容
+if [ -f "$HOSTS_FILE" ]; then
+    before_mark=$(sed -n '1,/##订阅hosts内容开始/p' "$HOSTS_FILE" | grep -v "##订阅hosts内容开始")
+    after_mark=$(sed -n '/##订阅hosts内容结束/,$p' "$HOSTS_FILE" | grep -v "##订阅hosts内容结束")
+else
+    before_mark=""
+    after_mark=""
+fi
+
+# 创建临时文件
+temp_file="/tmp/hosts.temp"
+echo "$before_mark" > "$temp_file"
+echo -e "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##" >> "$temp_file"
+
+# 下载并合并hosts内容
+success=0
+for url in $urls; do
+    write_log "正在获取URL内容: $url"
+    if wget -qO- "$url" >> "$temp_file" 2>/dev/null; then
+        write_log "成功获取内容: $url"
+        success=1
+    else
+        write_log "获取内容失败: $url"
     fi
-    if [ $i -eq 3 ]; then
-        logger -t "autoupdatehosts" "网络连接失败，跳过更新"
-        exit 1
-    fi
-    sleep 10
 done
 
-# 调用 LuCI 的 save_hosts_etc 接口
-curl -s "http://localhost/cgi-bin/luci/admin/services/autoupdatehosts/save_hosts_etc" \
-    -X POST \
-    -H "Content-Type: application/json" \
-    -d "{}" \
-    > /dev/null 2>&1
-
-# 检查执行结果
-if [ $? -eq 0 ]; then
-    end_time=$(date +%s)
-    duration=$((end_time - start_time))
-    logger -t "autoupdatehosts" "定时任务执行成功，耗时 ${duration} 秒"
-else
-    logger -t "autoupdatehosts" "定时任务执行失败"
+if [ $success -eq 0 ]; then
+    write_log "所有URL获取失败"
+    rm -f "$temp_file"
     exit 1
-fi 
+fi
+
+# 添加结束标记和剩余内容
+echo -e "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##" >> "$temp_file"
+echo "$after_mark" >> "$temp_file"
+
+# 移除多余的空行
+sed -i '/^$/N;/^\n$/D' "$temp_file"
+
+# 更新hosts文件
+if mv "$temp_file" "$HOSTS_FILE"; then
+    write_log "hosts文件更新成功"
+    # 重启dnsmasq服务
+    /etc/init.d/dnsmasq restart
+    write_log "已重启dnsmasq服务"
+else
+    write_log "hosts文件更新失败"
+    rm -f "$temp_file"
+    exit 1
+fi
+
+write_log "自动更新hosts完成"
+exit 0 
