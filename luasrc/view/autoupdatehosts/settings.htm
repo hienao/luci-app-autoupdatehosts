@@ -306,7 +306,14 @@ function backupHosts() {
         function(x, result) {
             clearTimeout(timeoutId);
             hideLoading();
-            if (result.code === 0) {
+            if (x.status == 200) {
+                try {
+                    result = JSON.parse(x.responseText);
+                } catch(e) {
+                    result = null;
+                }
+            }
+            if (result && result.code === 0) {
                 alert('<%:Backup created successfully%>');
             } else {
                 alert('<%:Failed to create backup%>');
@@ -334,6 +341,13 @@ function saveHosts() {
             clearTimeout(timeoutId);
             hideLoading();
             if (x.status == 200) {
+                try {
+                    result = JSON.parse(x.responseText);
+                } catch(e) {
+                    result = null;
+                }
+            }
+            if (result && result.code === 0) {
                 alert('<%:Hosts saved successfully%>');
             } else {
                 alert('<%:Failed to save hosts%>');
@@ -395,6 +409,14 @@ function saveSettings() {
     // 发送保存请求
     makeRequest('post', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_settings")%>', data,
         function(x, result) {
+            if (x.status == 200) {
+                try {
+                    result = JSON.parse(x.responseText);
+                } catch(e) {
+                    result = null;
+                }
+            }
+            
             if (result && result.code === 0) {
                 if (!data.bakPath.trim()) {
                     document.getElementById('bakPath').value = data.bakPath;
@@ -403,6 +425,9 @@ function saveSettings() {
             } else {
                 alert('<%:Failed to save settings%>');
             }
+        },
+        function() {
+            alert('<%:Failed to save settings: Network error%>');
         }
     );
 }
