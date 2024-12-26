@@ -234,6 +234,7 @@ local function validate_hosts_content(content)
     
     local line_number = 0
     local valid_lines = 0
+    local total_valid_lines = 0  -- 用于统计所��非注释和非空行
     local invalid_lines = {}
     local new_content = {}
     
@@ -246,6 +247,7 @@ local function validate_hosts_content(content)
         
         -- 跳过空行和注释行
         if line ~= "" and not line:match("^#") then
+            total_valid_lines = total_valid_lines + 1  -- 统计非注释和非空行
             -- 检查是否符合hosts文件格式: IP地址(IPv4或IPv6) 域名
             local ip, domain = line:match("^([%x%d:%.]+)%s+([%S]+)")
             if not ip or not domain then
@@ -294,31 +296,29 @@ local function validate_hosts_content(content)
         end
     end
     
-    -- 如果没有找到任何有效行，但文件不为空且只包含空行或注释
-    if valid_lines == 0 and line_number > 0 then
-        local only_empty_or_comments = true
-        for line in content:gmatch("[^\r\n]+") do
-            line = line:match("^%s*(.-)%s*$")
-            if line ~= "" and not line:match("^#") then
-                only_empty_or_comments = false
-                break
-            end
-        end
-        if only_empty_or_comments then
-            return true, "hosts内容验证通过（仅包含空行和注释）", content
-        end
-    end
-    
     -- 组合新的内容
     local new_content_str = table.concat(new_content, "\n")
     
+    -- 如果文件中有非注释和非空行，且移除无效行后还有内容，则视为有效
+    if total_valid_lines > 0 and valid_lines > 0 then
+        write_log(string.format("hosts文件验证通过：总行数 %d，有效行数 %d", total_valid_lines, valid_lines))
+        return true, "hosts内容验证通过", new_content_str
+    end
+    
+    -- 如果文件只包含空行或注释行，视为无效
+    if total_valid_lines == 0 then
+        write_log("hosts文件验证失败：文件仅包含空行或注释行")
+        return false, "hosts文件不能仅包含空行或注释行", content
+    end
+    
+    -- 如果所有非注释行都无效
     if #invalid_lines > 0 then
         local msg = string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
         write_log(msg)
         return false, msg, new_content_str
     end
     
-    return true, "hosts内容验证通过", new_content_str
+    return false, "hosts内容无效", new_content_str
 end
 
 -- 修改保存hosts文件的函数
@@ -410,7 +410,7 @@ function backup_hosts()
         return
     end
     
-    -- 确保备份目录存��
+    -- 确保备份目录存在
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
