@@ -32,11 +32,25 @@ local function load_settings()
     if fs.access(SETTINGS_FILE) then
         local content = fs.readfile(SETTINGS_FILE)
         if content then
-            -- 简单的 YAML 解析
+            local urls = {}
+            local in_urls = false
+            
+            -- 解析YAML，特别处理urls数组
             for line in content:gmatch("[^\r\n]+") do
-                local key, value = line:match("^([^:]+):%s*(.+)$")
-                if key and value then
-                    settings[key] = value
+                if line:match("^urls:") then
+                    in_urls = true
+                    settings.urls = {}
+                elseif in_urls and line:match("^%s+-%s+(.+)$") then
+                    -- 处理urls数组项
+                    local url = line:match("^%s+-%s+(.+)$")
+                    table.insert(settings.urls, url)
+                else
+                    -- 处理普通键值对
+                    local key, value = line:match("^([^:]+):%s*(.+)$")
+                    if key and value then
+                        in_urls = false
+                        settings[key] = value
+                    end
                 end
             end
         end
@@ -46,6 +60,7 @@ local function load_settings()
     settings.enable = settings.enable or "false"
     settings.cron = settings.cron or ""
     settings.bakPath = settings.bakPath or "/etc/auto_update_host/hosts.bak"
+    settings.urls = settings.urls or {}
     
     return settings
 end
@@ -168,7 +183,7 @@ function save_settings()
                 os.execute("/etc/init.d/cron restart")
                 write_log("定时任务更新成功")
             else
-                write_log("定时任务更新失败")
+                write_log("定时任务���新失败")
             end
         else
             write_log("移除定时任务...")
@@ -181,7 +196,7 @@ function save_settings()
     else
         write_log("配置文件保存失败")
         luci.http.prepare_content("application/json")
-        luci.http.write_json({code = 1, msg = "设置保存��败"})
+        luci.http.write_json({code = 1, msg = "设置保存失败"})
     end
 end 
 
@@ -291,7 +306,7 @@ function save_hosts_etc()
         if fs.writefile(HOSTS_FILE, content) then
             -- 重启 dnsmasq
             os.execute("/etc/init.d/dnsmasq restart")
-            write_log("hosts文件保存成功，��重启dnsmasq服务")
+            write_log("hosts文件保存成功，重启dnsmasq服务")
             luci.http.prepare_content("application/json")
             luci.http.write_json({code = 0, msg = "Hosts保存成功"})
         else
@@ -360,7 +375,7 @@ function backup_hosts()
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
-        write_log(string.format("创��备份目录：%s", backup_dir))
+        write_log(string.format("创建备份目录：%s", backup_dir))
     end
     
     -- 创建备份
@@ -442,7 +457,7 @@ function preview_hosts()
     local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
     -- 检查是否存在标记
-    local has_marks = current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
+    local has_marks = current_hosts:find("##��阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
     
     local before_mark, after_mark
     

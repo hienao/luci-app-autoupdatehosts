@@ -324,6 +324,7 @@ window.addEventListener('load', function() {
     // 获取设置
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_settings")%>', null,
         function(x, data) {
+            console.log('Received settings:', data); // 添加调试日志
             if (data) {
                 // 加载启用状态
                 document.getElementById('enable').checked = data.enable === "true";
