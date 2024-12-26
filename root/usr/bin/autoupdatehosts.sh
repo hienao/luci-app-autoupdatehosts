@@ -34,18 +34,6 @@ if [ -z "$urls" ]; then
     exit 1
 fi
 
-# 读取备份路径
-bakPath=$(awk -F': ' '/^bakPath:/ {print $2}' "$SETTINGS_FILE")
-if [ -z "$bakPath" ]; then
-    bakPath="/etc/auto_update_host/hosts.bak"
-fi
-
-# 备份当前hosts文件
-if [ -f "$HOSTS_FILE" ]; then
-    cp "$HOSTS_FILE" "$bakPath"
-    write_log "已备份当前hosts文件到: $bakPath"
-fi
-
 # 获取当前hosts文件的非订阅内容
 if [ -f "$HOSTS_FILE" ]; then
     before_mark=$(sed -n '1,/##订阅hosts内容开始/p' "$HOSTS_FILE" | grep -v "##订阅hosts内容开始")
@@ -59,6 +47,8 @@ fi
 temp_file="/tmp/hosts.temp"
 echo "$before_mark" > "$temp_file"
 echo -e "\n##订阅hosts内容开始（程序自动更新请勿手动修改中间内容）##" >> "$temp_file"
+# 添加更新时间戳
+echo -e "# 更新时间：$(date '+%Y-%m-%d %H:%M:%S')\n" >> "$temp_file"
 
 # 下载并合并hosts内容
 success=0
