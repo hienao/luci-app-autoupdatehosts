@@ -1,36 +1,43 @@
-[autoupdatehosts 自动订阅hosts更新](luci-app-autoupdatehosts)
+[Auto Update Hosts](luci-app-autoupdatehosts)
 ==========================================
 
-[![](https://img.shields.io/badge/-目录:-696969.svg)](#readme) [![](https://img.shields.io/badge/-使用说明-F5F5F5.svg)](#使用说明-) [![](https://img.shields.io/badge/-说明-F5F5F5.svg)](#说明-) [![](https://img.shields.io/badge/-捐助-F5F5F5.svg)](#捐助-) 
+[中文说明](README.CN.md)
 
-请 **认真阅读完毕** 本页面，本页面包含注意事项和如何使用。
+[![](https://img.shields.io/badge/-Table%20of%20Contents-696969.svg)](#readme) [![](https://img.shields.io/badge/-Instructions-F5F5F5.svg)](#instructions-) [![](https://img.shields.io/badge/-About-F5F5F5.svg)](#about-) [![](https://img.shields.io/badge/-Donate-F5F5F5.svg)](#donate-) 
 
-autoupdatehosts是一款基于OPNEWRT编译的自动更新hosts源码插件。
+Please **read this page carefully** as it contains important information and usage instructions.
+
+Auto Update Hosts is an OpenWrt plugin for automatically updating hosts files.
 -----------------------------------------
 
-## 写在前面：
+## Important Note:
 ----------------------------------
-   -此源码未经过大量测试，不确定是否能兼容哪些路由系统版本，建议有足够的动手能力再安装该插件，安装使用前请务必做好路由系统备份
+This code hasn't been extensively tested, and compatibility with different router system versions is not guaranteed. It's recommended to have sufficient technical expertise before installing this plugin. Please make sure to backup your router system before installation.
 
-## 使用说明 [![](https://img.shields.io/badge/-使用说明-F5F5F5.svg)](#使用说明-) 
+## Settings Screenshot
 
+![Settings Screenshot](/screen/screen.png)
 
+## Instructions [![](https://img.shields.io/badge/-Instructions-F5F5F5.svg)](#instructions-) 
 
-## 使用与授权相关说明
- 
-- 本人开源的所有源码，任何引用需注明本处出处，如需修改二次发布必告之本人，未经许可不得做于任何商用用途。
+Add update URLs to the subscription, for example: https://raw.githubusercontent.com/cnwikee/CheckTMDB/refs/heads/main/Tmdb_host_ipv4. Set up a schedule (optional), then save the settings or hosts file.
 
+## Usage and License
 
-<a href="#readme">
-    <img src="https://img.shields.io/badge/-返回顶部-orange.svg" alt="图飞了😂" title="返回顶部" align="right"/>
-</a>
+- All source code is open-sourced. Any reference must cite this source. For modifications and redistribution, please notify the author. Commercial use without permission is prohibited.
 
-## 版本历史
+## Version History
 
 ### v1.0.0 (2024-03-21)
-- 初始版本发布
-- 支持自动更新 hosts 文件
-- 支持多个订阅源
-- 支持定时更新
-- 支持备份和还原
+- Initial release
+- Support for automatic hosts file updates
+- Support for multiple subscription sources
+- Support for scheduled updates
+- Support for backup and restore
+
+<a href="#readme">
+    <img src="https://img.shields.io/badge/-Back%20to%20Top-orange.svg" alt="Back to Top" title="Back to Top" align="right"/>
+</a>
+
+
 
