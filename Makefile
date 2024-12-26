@@ -6,11 +6,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-autoupdatehosts
-PKG_VERSION:=1.0.0
+PKG_VERSION:=$(shell cat $(CURDIR)/version.txt 2>/dev/null | tr -d 'v[:space:]' || echo "1.0.0")
 PKG_RELEASE:=1
 
 PKG_LICENSE:=MIT
-PKG_MAINTAINER:=shiwentao666@gmail.com
+PKG_MAINTAINER:=Hienao
 
 LUCI_TITLE:=LuCI support for Auto Update Hosts
 LUCI_PKGARCH:=all

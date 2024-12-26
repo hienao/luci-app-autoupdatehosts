@@ -25,3 +25,12 @@ autoupdatehosts是一款基于OPNEWRT编译的自动更新hosts源码插件。
     <img src="https://img.shields.io/badge/-返回顶部-orange.svg" alt="图飞了😂" title="返回顶部" align="right"/>
 </a>
 
+## 版本历史
+
+### v1.0.0 (2024-03-21)
+- 初始版本发布
+- 支持自动更新 hosts 文件
+- 支持多个订阅源
+- 支持定时更新
+- 支持备份和还原
+

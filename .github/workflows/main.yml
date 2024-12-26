@@ -3,6 +3,10 @@ name: Build and Release
 on:
   push:
     branches:
+      - pre
+  pull_request:
+    types: [closed]
+    branches:
       - main
       - pre
 
@@ -11,6 +15,9 @@ permissions:
 
 jobs:
   build_and_release:
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/pre') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && (github.base_ref == 'main' || github.base_ref == 'pre'))
     name: Build and Release
     runs-on: ubuntu-22.04
     steps:
@@ -19,7 +26,7 @@ jobs:
       - name: Set Release Info
         id: release_info
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/pre" ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/pre" || "${{ github.base_ref }}" == "pre" ]]; then
             echo "RELEASE_VERSION=pre-$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
           else
