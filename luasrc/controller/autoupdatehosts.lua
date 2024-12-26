@@ -215,20 +215,33 @@ function get_current_hosts()
     luci.http.write(hosts_content)
 end
 
--- 添加hosts文件内容验证函数
+-- 添加 ping 检查函数
+local function check_ip_connectivity(ip)
+    -- 使用 ping 命令检查 IP 是否可达
+    -- -c 1: 只发送1个包
+    -- -W 1: 等待超时时间1秒
+    -- -q: 安静模式
+    local cmd = string.format("ping -c 1 -W 1 -q %s >/dev/null 2>&1", ip)
+    local ret = os.execute(cmd)
+    return ret == 0
+end
+
+-- 修改 hosts 内容验证函数
 local function validate_hosts_content(content)
     if not content or #content == 0 then
-        return false, "hosts内容不能为空"
+        return false, "hosts内容不能为空", content
     end
     
     local line_number = 0
     local valid_lines = 0
     local invalid_lines = {}
+    local new_content = {}
     
     for line in content:gmatch("[^\r\n]+") do
         line_number = line_number + 1
+        local should_keep = true
         
-        -- 去除行首尾���空白字符
+        -- 去除行首尾空白字符
         line = line:match("^%s*(.-)%s*$")
         
         -- 跳过空行和注释行
@@ -237,6 +250,8 @@ local function validate_hosts_content(content)
             local ip, domain = line:match("^([%x%d:%.]+)%s+([%S]+)")
             if not ip or not domain then
                 table.insert(invalid_lines, line_number)
+                write_log(string.format("行 %d 格式无效: %s", line_number, line))
+                should_keep = false
             else
                 local valid_ip = false
                 -- 验证IPv4地址格式
@@ -252,20 +267,34 @@ local function validate_hosts_content(content)
                     end
                 -- 验证IPv6地址格式
                 elseif ip:match("^%x*:%x*") then
-                    -- 简单验证IPv6格式，接受包含冒号的十六进制格式
                     valid_ip = true
                 end
                 
-                if not valid_ip then
-                    table.insert(invalid_lines, line_number)
+                if valid_ip then
+                    -- 进行 ping 检查
+                    if check_ip_connectivity(ip) then
+                        valid_lines = valid_lines + 1
+                        write_log(string.format("IP检查成功: %s (行 %d)", line, line_number))
+                    else
+                        table.insert(invalid_lines, line_number)
+                        write_log(string.format("IP无法访问: %s (行 %d)", line, line_number))
+                        should_keep = false
+                    end
                 else
-                    valid_lines = valid_lines + 1
+                    table.insert(invalid_lines, line_number)
+                    write_log(string.format("IP格式无效: %s (行 %d)", line, line_number))
+                    should_keep = false
                 end
             end
         end
+        
+        -- 只保留有效的行
+        if should_keep then
+            table.insert(new_content, line)
+        end
     end
     
-    -- 如果没有找到任何有效行，但文件不为空且只包含空行或注释，也认为是有效的
+    -- 如果没有找到任何有效行，但文件不为空且只包含空行或注释
     if valid_lines == 0 and line_number > 0 then
         local only_empty_or_comments = true
         for line in content:gmatch("[^\r\n]+") do
@@ -276,15 +305,20 @@ local function validate_hosts_content(content)
             end
         end
         if only_empty_or_comments then
-            return true, "hosts内容验证通过（仅包含空行和注释）"
+            return true, "hosts内容验证通过（仅包含空行和注释）", content
         end
     end
     
+    -- 组合新的内容
+    local new_content_str = table.concat(new_content, "\n")
+    
     if #invalid_lines > 0 then
-        return false, string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
+        local msg = string.format("发现无效的hosts条目(行号: %s)", table.concat(invalid_lines, ", "))
+        write_log(msg)
+        return false, msg, new_content_str
     end
     
-    return true, "hosts内容验证通过"
+    return true, "hosts内容验证通过", new_content_str
 end
 
 -- 修改保存hosts文件的函数
@@ -296,7 +330,7 @@ function save_hosts_etc()
         write_log(string.format("准备保存hosts文件，内容大小：%d 字节", #content))
         
         -- 验证hosts内容
-        local is_valid, msg = validate_hosts_content(content)
+        local is_valid, msg, new_content = validate_hosts_content(content)
         if not is_valid then
             write_log("hosts文件验证失败: " .. msg)
             luci.http.prepare_content("application/json")
@@ -305,10 +339,10 @@ function save_hosts_etc()
         end
         
         -- 确保内容有正确的换行
-        content = content:gsub("\r\n", "\n"):gsub("\n\n+", "\n\n")
+        new_content = new_content:gsub("\r\n", "\n"):gsub("\n\n+", "\n\n")
         
         -- 保存新内容
-        if fs.writefile(HOSTS_FILE, content) then
+        if fs.writefile(HOSTS_FILE, new_content) then
             -- 重启 dnsmasq
             os.execute("/etc/init.d/dnsmasq restart")
             write_log("hosts文件保存成功，重启dnsmasq服务")
@@ -376,7 +410,7 @@ function backup_hosts()
         return
     end
     
-    -- 确保备份目录存在
+    -- 确保备份目录存��
     local backup_dir = backup_path:match("(.+)/[^/]+$")
     if backup_dir and not fs.access(backup_dir) then
         os.execute("mkdir -p " .. backup_dir)
@@ -503,7 +537,7 @@ function preview_hosts()
     end
     
     if #new_content > 0 then
-        -- 组合最终内容，确保各部分之间有正确的换行
+        -- 组合最终内容，确保各个部分之间有正确的换行
         local result = before_mark .. start_mark .. new_content .. end_mark .. after_mark
         
         -- 移除多余的空行
