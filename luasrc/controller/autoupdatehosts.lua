@@ -70,6 +70,9 @@ function index()
         return
     end
 
+    -- 确保脚本有执行权限
+    os.execute("chmod +x /usr/bin/autoupdatehosts.sh")
+    
     -- 创建主菜单项
     entry({"admin", "services", "autoupdatehosts"}, firstchild(), _("Auto Update Hosts"), 60)
     
@@ -177,13 +180,15 @@ function save_settings()
             write_log("更新定时任务...")
             -- 移除旧的定时任务
             os.execute("sed -i '/autoupdatehosts.sh/d' /etc/crontabs/root")
-            -- 添加新的定时任务
-            local cron_cmd = string.format("echo '%s /usr/bin/autoupdatehosts.sh' >> /etc/crontabs/root", settings.cron)
+            -- 添加新的定时任务（修改这里）
+            local cron_cmd = string.format("echo '%s /usr/bin/autoupdatehosts.sh >> /tmp/auto_update_host/log.txt 2>&1' >> /etc/crontabs/root", settings.cron)
             if os.execute(cron_cmd) == 0 then
+                -- 确保crontab文件有正确的权限
+                os.execute("chmod 0600 /etc/crontabs/root")
                 os.execute("/etc/init.d/cron restart")
                 write_log("定时任务更新成功")
             else
-                write_log("定时任务���新失败")
+                write_log("定时任务更新失败")
             end
         else
             write_log("移除定时任务...")
@@ -223,7 +228,7 @@ local function validate_hosts_content(content)
     for line in content:gmatch("[^\r\n]+") do
         line_number = line_number + 1
         
-        -- 去除行首尾的空白字符
+        -- 去除行首尾���空白字符
         line = line:match("^%s*(.-)%s*$")
         
         -- 跳过空行和注释行
@@ -457,7 +462,7 @@ function preview_hosts()
     local end_mark = "\n##订阅hosts内容结束（程序自动更新请勿手动修改中间内容）##\n"
     
     -- 检查是否存在标记
-    local has_marks = current_hosts:find("##��阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
+    local has_marks = current_hosts:find("##订阅hosts内容开始") and current_hosts:find("##订阅hosts内容结束")
     
     local before_mark, after_mark
     
