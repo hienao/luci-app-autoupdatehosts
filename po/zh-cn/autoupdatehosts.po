@@ -154,3 +154,15 @@ msgstr "设置保存失败"
 msgid "Save Settings"
 msgstr "保存设置"
 
+msgid "Are you sure you want to reset all settings? This cannot be undone."
+msgstr "您确定要重置所有设置吗？此操作无法撤销。"
+
+msgid "Settings have been reset successfully"
+msgstr "设置已成功重置"
+
+msgid "Failed to reset settings"
+msgstr "重置设置失败"
+
+msgid "Reset Settings"
+msgstr "重置设置"
+
