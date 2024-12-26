@@ -19,6 +19,9 @@ LUCI_DEPENDS:=+wget
 # 添加语言包依赖
 PKG_DEPENDS:=+luci-i18n-autoupdatehosts-zh-cn
 
+# 支持 OpenWrt 18.06 及以上版本
+PKG_MINVERSION:=18.06
+
 include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature

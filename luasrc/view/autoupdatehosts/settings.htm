@@ -201,8 +201,23 @@
 </div>
 
 <script type="text/javascript">
+// 定义一个通用的 HTTP 请求函数
+function makeRequest(method, url, data, successCallback, errorCallback) {
+    if (typeof XHR === 'object' && XHR.post) {
+        // 新版本 OpenWrt
+        if (method.toLowerCase() === 'post') {
+            XHR.post(url, data, successCallback, errorCallback);
+        } else {
+            XHR.get(url, data, successCallback, errorCallback);
+        }
+    } else {
+        // 旧版本 OpenWrt
+        new XHR().post(url, data, successCallback, errorCallback);
+    }
+}
+
 function viewCurrentHosts() {
-    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
+    makeRequest('get', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
             if (x.status == 200) {
                 document.getElementById('hosts_content').value = x.responseText;
@@ -261,7 +276,7 @@ function previewHosts() {
         document.getElementById('hosts_content').value = '<%:Operation timed out after 2 minutes%>';
     });
 
-    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', 
+    makeRequest('post', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "preview")%>', 
         { urls: JSON.stringify(urls) },
         function(x, res) {
             clearTimeout(timeoutId);
@@ -287,7 +302,7 @@ function backupHosts() {
         alert('<%:Operation timed out after 2 minutes%>');
     });
 
-    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null,
+    makeRequest('post', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "create_backup")%>', null,
         function(x, result) {
             clearTimeout(timeoutId);
             hideLoading();
@@ -313,7 +328,7 @@ function saveHosts() {
         alert('<%:Operation timed out after 2 minutes%>');
     });
 
-    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', 
+    makeRequest('post', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_hosts")%>', 
         { content: content },
         function(x, result) {
             clearTimeout(timeoutId);
@@ -361,14 +376,13 @@ function updateScheduleInputs() {
 
 function saveSettings() {
     // 收集表单数据
-    var bakPath = document.getElementById('bakPath').value;
     var data = {
         enable: document.getElementById('enable').checked ? 'true' : 'false',
         schedule_type: document.getElementById('schedule_type').value,
         schedule_hour: document.getElementById('schedule_hour').value,
         schedule_minute: document.getElementById('schedule_minute').value,
         subscription_urls: document.getElementById('subscription_urls').value,
-        bakPath: bakPath.trim() || '/etc/auto_update_host/hosts.bak'  // 如果为空则使用默认路径
+        bakPath: document.getElementById('bakPath').value.trim() || '/etc/auto_update_host/hosts.bak'
     };
     
     // 根据调度类型添加额外数据
@@ -379,11 +393,10 @@ function saveSettings() {
     }
     
     // 发送保存请求
-    XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_settings")%>', data,
+    makeRequest('post', '<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_settings")%>', data,
         function(x, result) {
             if (result && result.code === 0) {
-                // 如果保存成功且使用了默认路径，更新输入框显示
-                if (!bakPath.trim()) {
+                if (!data.bakPath.trim()) {
                     document.getElementById('bakPath').value = data.bakPath;
                 }
                 alert('<%:Settings saved successfully%>');
