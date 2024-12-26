@@ -156,8 +156,6 @@
 </div>
 
 <script type="text/javascript">
-var ui = require('luci.ui');
-
 function viewCurrentHosts() {
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "get_hosts")%>', null,
         function(x, res) {
