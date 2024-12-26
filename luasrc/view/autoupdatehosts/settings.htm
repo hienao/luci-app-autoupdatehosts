@@ -269,13 +269,14 @@ function updateScheduleInputs() {
 
 function saveSettings() {
     // 收集表单数据
+    var bakPath = document.getElementById('bakPath').value;
     var data = {
         enable: document.getElementById('enable').checked ? 'true' : 'false',
         schedule_type: document.getElementById('schedule_type').value,
         schedule_hour: document.getElementById('schedule_hour').value,
         schedule_minute: document.getElementById('schedule_minute').value,
         subscription_urls: document.getElementById('subscription_urls').value,
-        bakPath: document.getElementById('bakPath').value
+        bakPath: bakPath.trim() || '/etc/auto_update_host/hosts.bak'  // 如果为空则使用默认路径
     };
     
     // 根据调度类型添加额外数据
@@ -289,6 +290,10 @@ function saveSettings() {
     XHR.post('<%=luci.dispatcher.build_url("admin", "services", "autoupdatehosts", "save_settings")%>', data,
         function(x, result) {
             if (result && result.code === 0) {
+                // 如果保存成功且使用了默认路径，更新输入框显示
+                if (!bakPath.trim()) {
+                    document.getElementById('bakPath').value = data.bakPath;
+                }
                 alert('<%:Settings saved successfully%>');
             } else {
                 alert('<%:Failed to save settings%>');
@@ -328,9 +333,11 @@ window.addEventListener('load', function() {
                     document.getElementById('bakPath').value = data.bakPath;
                 }
                 
-                // 加载订阅URLs
-                if (data.urls && Array.isArray(data.urls)) {
-                    document.getElementById('subscription_urls').value = data.urls.join('\n');
+                // 修改加载订阅URLs的逻辑
+                if (data.urls) {
+                    // 确保无论data.urls是字符串还是数组都能正确处理
+                    let urlList = Array.isArray(data.urls) ? data.urls : [data.urls];
+                    document.getElementById('subscription_urls').value = urlList.join('\n');
                 }
                 
                 // 加载调度设置
