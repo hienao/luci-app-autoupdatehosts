@@ -130,11 +130,17 @@ function save_settings()
         local month = "*"
         local week = "*"
         
-        if settings.schedule_type == "monthly" and settings.schedule_day then
-            day = settings.schedule_day
-        elseif settings.schedule_type == "weekly" and settings.schedule_week then
-            week = settings.schedule_week
-            day = "*"
+        if settings.schedule_type == "hourly" then
+            -- 每x小时执行一次
+            minute = "0"  -- 在每小时的0分执行
+            hour = "*/" .. settings.schedule_hours_interval
+        else
+            if settings.schedule_type == "monthly" and settings.schedule_day then
+                day = settings.schedule_day
+            elseif settings.schedule_type == "weekly" and settings.schedule_week then
+                week = settings.schedule_week
+                day = "*"
+            end
         end
         
         cron = string.format("%s %s %s %s %s", minute, hour, day, month, week)
@@ -234,7 +240,7 @@ local function validate_hosts_content(content)
     
     local line_number = 0
     local valid_lines = 0
-    local total_valid_lines = 0  -- 用于统计所��非注释和非空行
+    local total_valid_lines = 0  -- 用于统计所有非注释和非空行
     local invalid_lines = {}
     local new_content = {}
     

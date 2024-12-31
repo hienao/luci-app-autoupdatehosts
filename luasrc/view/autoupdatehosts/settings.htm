@@ -117,10 +117,20 @@
             <div class="settings-input schedule-container">
                 <select id="schedule_type" class="schedule-select" onchange="updateScheduleInputs()">
                     <option value="none"><%:Disabled%></option>
+                    <option value="hourly"><%:Every X Hours%></option>
                     <option value="daily"><%:Daily%></option>
                     <option value="weekly"><%:Weekly%></option>
                     <option value="monthly"><%:Monthly%></option>
                 </select>
+                <span id="hourly_container" style="display:none">
+                    <%:Every%>
+                    <select id="schedule_hours_interval" style="width:60px">
+                        <% for i = 1, 12 do %>
+                            <option value="<%=i%>"><%=i%></option>
+                        <% end %>
+                    </select>
+                    <%:Hours%>
+                </span>
                 <span id="day_container" style="display:none">
                     <%:Day%>: 
                     <select id="schedule_day" style="width:60px">
@@ -366,14 +376,19 @@ function updateScheduleInputs() {
     var dayContainer = document.getElementById('day_container');
     var weekContainer = document.getElementById('week_container');
     var timeContainer = document.getElementById('time_container');
+    var hourlyContainer = document.getElementById('hourly_container');
     
     // 隐藏所有容器
     dayContainer.style.display = 'none';
     weekContainer.style.display = 'none';
     timeContainer.style.display = 'none';
+    hourlyContainer.style.display = 'none';
     
     // 根据选择显示对应的输入框
     switch(type) {
+        case 'hourly':
+            hourlyContainer.style.display = 'inline';
+            break;
         case 'monthly':
             dayContainer.style.display = 'inline';
             timeContainer.style.display = 'inline';
@@ -400,7 +415,9 @@ function saveSettings() {
     };
     
     // 根据调度类型添加额外数据
-    if (data.schedule_type === 'monthly') {
+    if (data.schedule_type === 'hourly') {
+        data.schedule_hours_interval = document.getElementById('schedule_hours_interval').value;
+    } else if (data.schedule_type === 'monthly') {
         data.schedule_day = document.getElementById('schedule_day').value;
     } else if (data.schedule_type === 'weekly') {
         data.schedule_week = document.getElementById('schedule_week').value;
@@ -480,7 +497,11 @@ window.addEventListener('load', function() {
                     document.getElementById('schedule_minute').value = minute;
                     
                     // 确定调度类型并设置相应的值
-                    if (day !== '*' && week === '*') {
+                    if (hour.includes('/')) {
+                        // 处理每x小时的情况
+                        document.getElementById('schedule_type').value = 'hourly';
+                        document.getElementById('schedule_hours_interval').value = hour.split('/')[1];
+                    } else if (day !== '*' && week === '*') {
                         document.getElementById('schedule_type').value = 'monthly';
                         document.getElementById('schedule_day').value = day;
                     } else if (week !== '*' && day === '*') {
