@@ -114,12 +114,13 @@ function save_settings()
     settings.schedule_minute = luci.http.formvalue("schedule_minute") or "0"
     settings.schedule_day = luci.http.formvalue("schedule_day")
     settings.schedule_week = luci.http.formvalue("schedule_week")
+    settings.schedule_hours_interval = luci.http.formvalue("schedule_hours_interval")
     settings.subscription_urls = luci.http.formvalue("subscription_urls")
     settings.bakPath = luci.http.formvalue("bakPath") or "/etc/auto_update_host/hosts.bak"
     
-    write_log(string.format("接收到的设置数据: enable=%s, type=%s, hour=%s, minute=%s, day=%s, week=%s", 
+    write_log(string.format("接收到的设置数据: enable=%s, type=%s, hour=%s, minute=%s, day=%s, week=%s, hours_interval=%s", 
         settings.enable, settings.schedule_type, settings.schedule_hour, settings.schedule_minute,
-        settings.schedule_day or "nil", settings.schedule_week or "nil"))
+        settings.schedule_day or "nil", settings.schedule_week or "nil", settings.schedule_hours_interval or "nil"))
     
     -- 构建cron表达式
     local cron = ""
@@ -133,7 +134,11 @@ function save_settings()
         if settings.schedule_type == "hourly" then
             -- 每x小时执行一次
             minute = "0"  -- 在每小时的0分执行
-            hour = "*/" .. settings.schedule_hours_interval
+            if settings.schedule_hours_interval then
+                hour = "*/" .. settings.schedule_hours_interval
+            else
+                hour = "*/1"  -- 默认每1小时
+            end
         else
             if settings.schedule_type == "monthly" and settings.schedule_day then
                 day = settings.schedule_day

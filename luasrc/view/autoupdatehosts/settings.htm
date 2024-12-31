@@ -408,8 +408,6 @@ function saveSettings() {
     var data = {
         enable: document.getElementById('enable').checked ? 'true' : 'false',
         schedule_type: document.getElementById('schedule_type').value,
-        schedule_hour: document.getElementById('schedule_hour').value,
-        schedule_minute: document.getElementById('schedule_minute').value,
         subscription_urls: document.getElementById('subscription_urls').value,
         bakPath: document.getElementById('bakPath').value.trim() || '/etc/auto_update_host/hosts.bak'
     };
@@ -417,10 +415,16 @@ function saveSettings() {
     // 根据调度类型添加额外数据
     if (data.schedule_type === 'hourly') {
         data.schedule_hours_interval = document.getElementById('schedule_hours_interval').value;
-    } else if (data.schedule_type === 'monthly') {
-        data.schedule_day = document.getElementById('schedule_day').value;
-    } else if (data.schedule_type === 'weekly') {
-        data.schedule_week = document.getElementById('schedule_week').value;
+        data.schedule_hour = '*';  // 对于每x小时的情况，hour应该是*
+        data.schedule_minute = '0';  // 在整点执行
+    } else {
+        data.schedule_hour = document.getElementById('schedule_hour').value;
+        data.schedule_minute = document.getElementById('schedule_minute').value;
+        if (data.schedule_type === 'monthly') {
+            data.schedule_day = document.getElementById('schedule_day').value;
+        } else if (data.schedule_type === 'weekly') {
+            data.schedule_week = document.getElementById('schedule_week').value;
+        }
     }
     
     // 发送保存请求

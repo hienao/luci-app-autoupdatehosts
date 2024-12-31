@@ -166,3 +166,6 @@ msgstr "重置设置失败"
 msgid "Reset Settings"
 msgstr "重置设置"
 
+msgid "Every X Hours"
+msgstr "每X小时"
+
